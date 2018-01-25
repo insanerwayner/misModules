@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<Settings>
+  <!-- Default settings.  All can be changed for the current session via Set-DelegateManagementSetting -->
+  <!-- Specify EXO or OnPremises -->
+  <ConnectionMode>OnPremises</ConnectionMode>
+  <!-- Specify True or False to use autodiscover -->
+  <UseAutodiscover>True</UseAutodiscover>
+  <!-- If connection mode is on-premises and you don't want to use autodiscover, specify the EWS URL to use. -->
+  <!-- The value is only used if the connection mode is OnPremises. -->
+  <EwsUrl>https://misexch01.ccmhmr.local/EWS/Exchange.asmx</EwsUrl>
+  <!-- Specify True or False to use impersonation instead of full access -->
+  <UseImpersonation>True</UseImpersonation>
+  <!-- When adding a delegate, should Author permission be added to Sent Items and Deleted Items folders. -->
+  <!-- Specific permission can also be explicitly added when adding a delegate. -->
+  <ApplyPermissionToSentItemsFolder>False</ApplyPermissionToSentItemsFolder>
+  <ApplyPermissionToDeletedItemsFolder>True</ApplyPermissionToDeletedItemsFolder>
+</Settings>
