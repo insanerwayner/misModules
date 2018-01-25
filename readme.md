@@ -16,7 +16,7 @@ When entering credentials for exchange don't forget the **"ccmhmr\"** on the use
 ### Setup misExchange to Load on PowerShell Startup
 
 In order to get your **Remote PowerShell Exchange Session** activated you have to run the command  
-```Import-Module misExchange```.  
+```Import-Module misExchange -DisableNameChecking```.  
 
 You can add this to your PowerShell Profile (after you have run **Setup-misModules.ps1**) by:
 
