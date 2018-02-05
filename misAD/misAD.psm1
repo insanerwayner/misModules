@@ -380,7 +380,7 @@ Function Unlock-ADUser
                 if ( ( get-aduser $user.samaccountname -properties lockedout -server $dc -ErrorAction SilentlyContinue ).lockedout -eq "True" )
                     {
                     $operation = "Unlocking User on $($dc)"
-                    Write-Progress -PercentComplete $percent -Activity 'Unlocking User' -CurrentOperation $operation
+                    Write-Progress -PercentComplete $percent -Activity 'Unlocking User' -CurrentOperation "Unlocking from $($DC)"
                     Unlock-ADAccount $user.SAMAccountName -Server $dc
                     if ( !$locked )
                         {
