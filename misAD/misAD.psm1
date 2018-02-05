@@ -382,7 +382,14 @@ Function Unlock-ADUser
                     $operation = "Unlocking User on $($dc)"
                     Write-Progress -PercentComplete $percent -Activity 'Unlocking User' -CurrentOperation $operation
                     Unlock-ADAccount $user.SAMAccountName -Server $dc
-                    Write-Host "Successfully Unlocked on $($DC)" -ForegroundColor Green
+                    if ( $i -eq 1 )
+                        {
+                        Write-Host "Successfully Unlocked on $($DC)" -ForegroundColor Green
+                        }
+                    else
+                        {
+                        Write-Host ", $($DC)" -ForegroundColor Green -NoNewLine
+                        }
                     $locked += $dc
                     }
                 }
