@@ -325,7 +325,7 @@ Function Unlock-ADUser
     .NOTES   
     Name: Unlock-ADUser
     Author: Wayne Reeves
-    Version: 11.29.17
+    Version: 2.5.18
 
     .PARAMETER Filter
     This is the string filter to search for the user
