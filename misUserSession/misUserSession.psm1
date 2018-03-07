@@ -1,4 +1,5 @@
 #requires -Modules misAD
+
 Function Get-CurrentUser($ComputerName='localhost')
 {
 <#
@@ -36,8 +37,22 @@ if ( $ComputerName -ne 'localhost' )
     {
     $ComputerName = (Find-ADComputer $ComputerName).name
     }
-$username = (Get-WmiObject win32_computersystem -ComputerName $ComputerName).username.replace("CCMHMR\","") 
-Get-ADUser $username
+if ( Test-Connection $ComputerName -Count 1 -Quiet )
+    {
+    Try
+        {
+        $username = (Get-WmiObject win32_computersystem -ComputerName $ComputerName -ErrorAction Stop).username.replace("CCMHMR\","") 
+        Get-ADUser $username
+        }
+    Catch
+        {
+        Write-Host "No User Logged in" -ForegroundColor Yellow
+        }
+    }
+else
+    {
+    Write-Host "Host Unreachable" -ForegroundColor Red
+    }
 }
 
 Function Disconnect-CurrentUser($ComputerName='localhost')
@@ -73,57 +88,52 @@ Disconnect-CurrentUser
 
 Will log you out of the computer
 #>
-$ComputerName = Find-ADComputer $ComputerName
-Try
+if ( $ComputerName -ne 'localhost' ) 
     {
-    $result = (gwmi win32_operatingsystem -ComputerName $computername -ErrorAction Stop ).Win32Shutdown(4)
-    if ( $result.ReturnValue -eq 0 )
-        {
-        Write-Host "Success" -ForegroundColor Green
-        }
-    else
-        {
-        Write-Host "Unknown Attempt Result:" $result.ReturnValue  -ForegroundColor Yellow
-        }
+    $ComputerName = (Find-ADComputer $ComputerName).name
     }
-Catch
+$User = (Get-CurrentUser $ComputerName).Name
+if ( $User )
     {
-    Write-Host "Host Unreachable" -ForegroundColor Red
+    if ( (gwmi win32_operatingsystem -ComputerName $ComputerName -ErrorAction Stop ).Win32Shutdown(4) )
+        {       
+        Write-Host "Successfully Logged Off User: $($User)" -ForegroundColor Green
+        }
     }
 }
 
-Function Get-UserSessions
+function Get-UserSessions
 {
 <#
 .Synopsis
-Queries a computer to check for interactive sessions
+queries a computer to check for interactive sessions
 
 .DESCRIPTION
-This script takes the output from the quser program and parses this to PowerShell objects
+this script takes the output from the quser program and parses this to PowerShell objects
 
 .NOTES   
-Name: Get-UserSessions
-Author: Jaap Brasser
-Version: 1.2.1
-DateUpdated: 2015-09-23
+name: Get-UserSessions
+author: Jaap Brasser
+version: 1.2.1
+dateUpdated: 2015-09-23
 
 .LINK
 http://www.jaapbrasser.com
 
 .PARAMETER ComputerName
-The string or array of string for which a query will be executed
+the string or array of string for which a query will be executed
 
 .EXAMPLE
-Get-UserSessions -ComputerName server01,server02
+get-UserSessions -ComputerName server01,server02
 
-Description:
-Will display the session information on server01 and server02
+description:
+will display the session information on server01 and server02
 
 .EXAMPLE
 'server01','server02' | Get-UserSessions
 
-Description:
-Will display the session information on server01 and server02
+description:
+will display the session information on server01 and server02
 #>
 param(
     [CmdletBinding()] 
