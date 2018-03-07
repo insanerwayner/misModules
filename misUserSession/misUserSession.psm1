@@ -12,7 +12,7 @@ This script uses WMI to query the win32_operatingsystem class
 .NOTES   
 Name: Get-CurrentUser
 Author: Wayne Reeves
-Version: 12.12.17
+Version: 3.7.18
 
 .PARAMETER ComputerName
 The name of the Computer that you are qurerying. Can also be just the asset tag. It will default to localhost.
@@ -67,7 +67,7 @@ This script uses WMI to query the win32_operatingsystem class and issue a logoff
 .NOTES   
 Name: Disconnect-CurrentUser
 Author: Wayne Reeves
-Version: 12.12.17
+Version: 3.7.18
 
 .PARAMETER ComputerName
 The name of the Computer that you are qurerying. Can also be just the asset tag. It will default to localhost.
