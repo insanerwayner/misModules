@@ -148,10 +148,11 @@ Function Move-RecoveryKeysFromFilesToKeePass
         $Files = Get-ChildItem "\\missvr2\mis\Computer Encryption\BitLocker Recovery Keys\new\"
         foreach ($File in $Files)
                 {
-                Write-Host "Moving Recovery Key for $($Asset)"
+                Write-Host "Writing Recovery Key for $($Asset)"
                 $Asset = $File.basename
-                $Key= Get-RecoveryKeyFromFile $asset
+                $Key= (Get-Content $file.FullName)[12] -Replace "\s"
                 New-Key -Asset $Asset -Key $Key -Notes "Bitlocker Recovery Key"
+                Write-Host "Moving Recovery Key for $($Asset)"
                 Move-Item $File.fullname "\\missvr2\mis\Computer Encryption\BitLocker Recovery Keys"
                 }
         }

@@ -11,7 +11,7 @@ Run the **Setup-misModules.ps1** Script with **Elevated Administrator Privileges
 
 **Note:**
 
-When entering credentials for exchange don't forget the **"ccmhmr\"** on the username
+When entering credentials for exchange don't forget the **domain\username**
 
 ### Setup misExchange to Load on PowerShell Startup
 
