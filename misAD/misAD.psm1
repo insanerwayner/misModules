@@ -675,7 +675,7 @@ Computer temporary password: <b>mouse99!</b>
     #Write-Host "Checking if username already exists" -ForegroundColor Yellow
     Write-Progress -Activity $Activity -CurrentOperation "Checking if username already exists" 
     
-    If ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$alias)" ) -eq $null ) 
+    If ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$alias)" -Server DC01 ) -eq $null ) 
         {
         #Write-Host "Creating $alias" -ForegroundColor Yellow
         Write-Progress -Activity $Activity -CurrentOperation "Creating $alias"
@@ -685,7 +685,7 @@ Computer temporary password: <b>mouse99!</b>
         $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
         $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value $alias
         }
-    elseif ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$aliaswithMI)") -eq $null )
+    elseif ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$aliaswithMI)" -Server DC01 ) -eq $null )
         {
         #Write-Host "$alias already exists."
         Write-Progress -Activity $Activity -CurrentOperation "$alias already exists."
