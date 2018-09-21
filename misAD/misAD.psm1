@@ -564,6 +564,7 @@ Function New-LPSUser
         [string]$Office, 
         [string]$Department, 
         [string]$Template, 
+        [string]$ScriptPath,
         [bool]$HomeDirectory=$True, 
         [bool]$Enabled=$False, 
         [bool]$ActiveSyncEnabled=$False,
