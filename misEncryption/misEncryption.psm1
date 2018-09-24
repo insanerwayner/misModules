@@ -116,6 +116,7 @@ Function New-Key
                 }
         if ( Get-Key $Asset )
             {
+            Write-Host "Key Exists:" -ForegroundColor Yellow
             Get-KeePassEntry @UpdParams -AsPlainText -WarningAction SilentlyContinue | ? Title -eq $asset |
                 Update-KeepassEntry @UpdParams -Notes $Notes -KeePassPassword $Key -WarningAction SilentlyContinue
             }
