@@ -647,10 +647,10 @@ Function New-LPSUser
                 }
         }
     
-    Function Send-Email($Name, $Alias)
+    Function Send-Email($DisplayName, $Alias)
         {
         $MISCreatorEmail = $ENV:username + "@lifepathsystems.org"
-        $Subject = "Login information for new staff $($Name)"
+        $Subject = "Login information for new staff $($DisplayName)"
         $Body = @"
 <p>Here is the login information for your new staff member:</p>
 
@@ -739,7 +739,7 @@ Computer temporary password: <b>mouse99!</b>
         Set-ADUser $alias -ScriptPath $ScriptPath -Server DC01
         If ( !$DoNotSendEmail )
             {
-            Send-Email -Name $UserObject.Name -Alias $UserObject.alias
+            Send-Email -DisplayName $UserObject.DisplayName -Alias $UserObject.alias
             }
         Write-Progress -Activity $Activity -Completed
         Return $UserObject
