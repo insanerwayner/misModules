@@ -109,37 +109,17 @@ Function New-Key
                 'KeePassPassword'=$Key
                 'Notes'=$Notes
                 }
-        New-KeePassEntry @params -WarningAction SilentlyContinue
+        if ( Get-Key $Asset )
+            {
+            Update-KeepassEntry @params -WarningAction SilentlyContinue
+            }
+        else
+            {       
+            New-KeePassEntry @params -WarningAction SilentlyContinue
+            }
         }
 
-Function Get-RecoveryKeyFromFile($asset)
-        {
-        <#
-        .Synopsis
-        Get Bitlocker Recovery Key from it's matching Text File stored on the Server
-
-        .DESCRIPTION
-        Get Bitlocker Recovery Key from it's matching Text File stored on the Server
-
-        .NOTES   
-        Name: Get-RecoveryKeyFromFile
-        Author: Wayne Reeves
-        Version: 11.28.17
-
-        .PARAMETER Asset
-        Asset Tag of the Computer
-
-        .EXAMPLE
-        Get-RecoveryKeyFromFile -Asset XXXX
-
-        Description:
-        Will retrieve Bitlocker Recovery key from text file matching the asset tag
-        #>
-        $file = "\\missvr2\mis\Computer Encryption\Bitlocker Recovery Keys\$($asset).txt"
-        (cat $file)[12] -Replace "\s"
-        }
-
-Function Move-RecoveryKeysFromFilesToKeePass
+Function Import-Key
         {
         <#
         .Synopsis
@@ -150,7 +130,7 @@ Function Move-RecoveryKeysFromFilesToKeePass
                 {
                 Write-Host "Writing Recovery Key for $($Asset)"
                 $Asset = $File.basename
-                $Key= (Get-Content $file.FullName)[12] -Replace "\s"
+                $Key= Get-Content $file.FullName
                 New-Key -Asset $Asset -Key $Key -Notes "Bitlocker Recovery Key"
                 Write-Host "Moving Recovery Key for $($Asset)"
                 Move-Item $File.fullname "\\missvr2\mis\Computer Encryption\BitLocker Recovery Keys"
