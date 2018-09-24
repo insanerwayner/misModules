@@ -109,9 +109,15 @@ Function New-Key
                 'KeePassPassword'=$Key
                 'Notes'=$Notes
                 }
+        $UpdParams = @{
+                'KeePassEntryGroupPath'='Lifepath Systems Assets/Network'
+                'DatabaseProfileName'='Assets'
+                'MasterKey'=$password
+                }
         if ( Get-Key $Asset )
             {
-            Update-KeepassEntry @params -WarningAction SilentlyContinue
+            Get-KeePassEntry @UpdParams -AsPlainText -WarningAction SilentlyContinue | ? Title -eq $asset |
+                Update-KeepassEntry @UpdParams -Notes $Notes -KeePassPassword $Key -WarningAction SilentlyContinue
             }
         else
             {       
