@@ -148,6 +148,10 @@ Connects a **Remote PowerShell Session** to Exchange so you can run Exchange com
 
 Used to store and retrieve passwords for other commands.
 
+### misServer
+
+Used to manage Windows Servers' various services easily.
+
 ### misScripting
 
 Cmdlets to make some advanced scripting easier. For use in some of the other Modules.
