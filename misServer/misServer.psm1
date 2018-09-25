@@ -1,10 +1,4 @@
-# depends misAD
-
-Function Get-DHCPLeases
-    {
-
-
-    }
+# depends misAD, misScripting
 
 Function Clear-PrintQueue
 {
@@ -35,7 +29,6 @@ Clear-PrintQueue -ComputerName MISHERITAGE1
 Description:
 Will clear the print queue of MISHERITAGE1
 #>
-[CmdletBinding(SupportsShouldProcess=$true)]
 param(
     $ComputerName
     )
