@@ -238,6 +238,84 @@ Function Select-User
         }
     }
 
+Function Select-Computer
+    {
+    <#
+    .Synopsis
+    A selectable menu to select a computer
+
+    .DESCRIPTION
+    This uses the output of Find-ADComputer to create a menu to select a computer
+
+    .NOTES   
+    Name: Select-Computer
+    Author: Wayne Reeves
+    Version: 9-25-18 
+
+    This really will only be used by other commandlettes
+
+    .PARAMETER Filter
+    This is the string filter to search for the computer
+
+    .EXAMPLE
+    Select-Computer test
+
+    Description:
+    Will create a menu with computers that match the string filter "test"
+    #>
+    param(
+        [parameter(Mandatory=$true, Position=1, ValueFromPipeline=$true)]
+        [string]
+        $Filter
+        )
+    $computers = Find-ADcomputer $filter
+    if ( $computers.Count -ne '' )
+        {
+        $menu = @()
+        for ($i=1;$i -le $computers.count; $i++)
+            {
+            Write-Host "$i. $($computers[$i-1].name)" -ForegroundColor Cyan
+            $computer = New-Object System.Object
+            $computer | Add-Member -MemberType NoteProperty -Name 'Index' -Value $i
+            $computer | Add-Member -MemberType NoteProperty -Name 'Name' -Value $($computers[$i-1].name)
+            $computer | Add-Member -MemberType NoteProperty -Name 'SAMAccountName' -Value $($computers[$i-1].samaccountname)
+            $menu += $computer
+            }
+        $selection = Read-Host 'Selection'
+        try
+            {
+            [int]$num = $selection
+            }
+        catch
+            {
+            Write-Host "Not a Valid Entry" -ForegroundColor Red
+            }
+        if ( $num -lt 1 -or $num -gt $menu.Count )
+            {
+            Write-Host "Not a Valid Entry" -ForegroundColor Red
+            }
+        $selection = $menu | ? { $_.Index -eq $selection }
+        Return $Selection
+        }
+    else
+        {
+        if ( $computers -eq $null )
+            {
+            Write-Host "No Match Found" -ForegroundColor Yellow
+            }
+        else 
+            {
+            Write-Host $computers.name -ForegroundColor Cyan
+            $continue = Read-Host "Continue? [Y,n]"
+            if ( ( $continue -eq 'y' ) -or ( $continue -eq "" ) )
+                {
+                Return $computers
+                }
+            }   
+        }
+    }
+
+
 Function Reset-Password
     {
     <#
