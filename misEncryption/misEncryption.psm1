@@ -140,6 +140,6 @@ Function Import-Key
                 $Key= Get-Content $file.FullName
                 New-Key -Asset $Asset -Key $Key -Notes "Bitlocker Recovery Key"
                 Write-Host "Moving Recovery Key for $($Asset)"
-                Move-Item $File.fullname "\\missvr2\mis\Computer Encryption\BitLocker Recovery Keys"
+                Move-Item $File.fullname "\\missvr2\mis\Computer Encryption\BitLocker Recovery Keys" -Force
                 }
         }
