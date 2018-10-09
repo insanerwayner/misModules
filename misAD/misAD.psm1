@@ -571,7 +571,7 @@ Function New-LPSUser
     .NOTES   
     Name: New-LPSUser
     Author: Wayne Reeves
-    Version: 11.29.17
+    Version: 10.9.18
 
     .PARAMETER FirstN
     First Name of User
@@ -642,7 +642,6 @@ Function New-LPSUser
         [string]$Office, 
         [string]$Department, 
         [string]$Template, 
-        [string]$ScriptPath,
         [bool]$HomeDirectory=$True, 
         [bool]$Enabled=$False, 
         [bool]$ActiveSyncEnabled=$False,
@@ -800,7 +799,7 @@ Computer temporary password: <b>mouse99!</b>
             Set-Mailbox -Identity $alias -HiddenFromAddressListsEnabled $True
             Set-ADUser -Identity $alias -Enabled $False -Server DC01
             }
-        Set-ADUser $alias -Department $Department -Office $Office -Title $Title -Description $Title -ScriptPath $ScriptPath -Server dc01
+        Set-ADUser $alias -Department $Department -Office $Office -Title $Title -Description $Title -Server dc01
         Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
         Set-HomeDirectory -alias $alias -Department $Department -Office $Office
         #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
