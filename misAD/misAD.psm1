@@ -708,7 +708,7 @@ Function New-LPSUser
                 New-SMBShare –Name $alias –Path $LocalPath -FullAccess Everyone -CimSession $FileServer	| Out-Null
                 #Write-Host "Setting N Drive to $SharePath" -ForegroundColor Yellow
                 Write-Progress -Activity $HDActivity -CurrentOperation "Setting N Drive to $SharePath"	
-                Set-AdUser -Identity $alias -HomeDirectory $SharePath -HomeDrive "N" -Server DC01
+                Set-AdUser -Identity $alias -HomeDirectory $SharePath -HomeDrive "N:" -Server DC01
                 Write-Progress -Activity $HDActivity -Completed
                 }
             else
