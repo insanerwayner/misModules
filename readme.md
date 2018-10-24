@@ -16,23 +16,23 @@ When entering credentials for exchange don't forget the **domain\username**
 ### Setup misExchange to Load on PowerShell Startup
 
 In order to get your **Remote PowerShell Exchange Session** activated you have to run the command  
-```Import-Module misExchange -DisableNameChecking```.  
+`Import-Module misExchange -DisableNameChecking`.  
 
 You can add this to your PowerShell Profile (after you have run **Setup-misModules.ps1**) by:
 
-- Open your Powershell Profile: ```notepad $profile```
-- Add the line: ```Import-Module misExchange -DisableNameChecking```
+- Open your Powershell Profile: `notepad $profile`
+- Add the line: `Import-Module misExchange -DisableNameChecking`
 - Save the File
 - Close and Reopen PowerShell
 
 ## Commands
 
 To get a list of commands for each module you can use:
-```Get-Command -Module <ModuleName>```  
+`Get-Command -Module <ModuleName>`  
 
 **Example:**
 
-```Get-Command -Module misAD```
+`Get-Command -Module misAD`
 
 Returns:  
 
@@ -52,11 +52,11 @@ Function        Unlock-ADUser                                      0.0        mi
 
 ### Get-Help
 
-To get help with a command you can use the ```Get-Help``` command.
+To get help with a command you can use the `Get-Help` command.
 
 **Example:**
 
-```Get-Help Unlock-ADUser```
+`Get-Help Unlock-ADUser`
 
 Returns:
 
@@ -86,11 +86,11 @@ REMARKS
 
 ### Getting Examples
 
-You can also get a list of examples for the command by using ```Get-Help <CommandName> -Examples```
+You can also get a list of examples for the command by using `Get-Help <CommandName> -Examples`
 
 **Example:**
 
-```Get-Help Unlock-ADUser -Examples```
+`Get-Help Unlock-ADUser -Examples`
 
 Returns:
 
@@ -123,7 +123,7 @@ SYNOPSIS
 
 ### Detailed Help
 
-You can also use ```Get-Help <CommandName> -Detailed``` to get the main help with the examples all at once.
+You can also use `Get-Help <CommandName> -Detailed` to get the main help with the examples all at once.
 
 
 ## Modules
