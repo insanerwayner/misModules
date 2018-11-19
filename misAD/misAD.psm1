@@ -788,7 +788,7 @@ Computer temporary password: <b>mouse99!</b>
         New-Mailbox -UserPrincipalName $principal -PrimarySmtpAddress $email -alias $alias -Name $fulln -password $Password -FirstName $firstn -LastName $lastn -DisplayName $fulln -ResetPasswordOnNextLogon $true -erroraction stop -DomainController DC01 | Out-Null
         #Write-Host "Setting ActiveSync and OWA Access" -ForegroundColor Yellow
         Write-Progress -Activity $Activity -CurrentOperation "Setting ActiveSync and OWA Access"
-        Set-CASMailbox -Identity $alias -ActiveSyncEnabled $ActiveSyncEnabled -owaenabled $false
+        Set-CASMailbox -Identity $alias -ActiveSyncEnabled $ActiveSyncEnabled -owaenabled $false -DomainController DC01
         $UserObject | Add-Member -MemberType NoteProperty -Name ActiveSyncEnabled -Value $ActiveSyncEnabled
         $UserObject | Add-Member -MemberType NoteProperty -Name Enabled -Value $Enabled
         Start-Sleep 10
@@ -796,7 +796,7 @@ Computer temporary password: <b>mouse99!</b>
             {
             #Write-Host "Disabling User and Hiding From Address Book" -ForegroundColor Yellow
             Write-Progress -Activity $Activity -CurrentOperation "Disabling User and Hiding From Address Book"
-            Set-Mailbox -Identity $alias -HiddenFromAddressListsEnabled $True
+            Set-Mailbox -Identity $alias -HiddenFromAddressListsEnabled $True -DomainController DC01
             Set-ADUser -Identity $alias -Enabled $False -Server DC01
             }
         Set-ADUser $alias -Department $Department -Office $Office -Title $Title -Description $Title -Server dc01
