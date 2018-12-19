@@ -921,6 +921,6 @@ Function Import-AnasaziIDs
         {
         Set-ADUser $ID.SAMAccountName -EmployeeID $ID.EmployeeID -Server DC01
         }
-    $List = $IDs | Foreach { Get-ADUser $_.SAMAccountName -Properties -Server DC01 } 
+    $List = $IDs | Foreach { Get-ADUser $_.SAMAccountName -Properties EmployeeID -Server DC01 } 
     $List | Select Name, EmployeeID
     }
