@@ -882,3 +882,45 @@ Function New-LPSUsersFromCSV
         }
     $UserObjects
     }
+
+Function Import-AnasaziIDs
+    {
+    <#
+    .Synopsis
+    Imports employees' Anasazi IDs into Active Directory
+
+    .DESCRIPTION
+    Imports employees' Anasazi IDs from a CSV file into Active Directory. Will display the results from Active Directory after finishing.
+
+    .NOTES   
+    Name: Import-AnasaziIDs
+    Author: Wayne Reeves
+    Version: 11.29.17
+
+    .PARAMETER Path
+    The path of the CSV File you are importing. The Default is "\\missvr2\mis\Apps\Anasazi\Active Directory Updates\AnasaziIDs.csv"
+
+    .EXAMPLE
+    Import-AnasaziIDs
+
+    Description:
+    In this example you are simply using the default path after preloading the CSV file. No parameters are required.
+
+    .EXAMPLE
+    Import-AnasaziIDs -Path C:\temp\AnasaziIDs.csv
+
+    Description:
+    In this example you are telling the script to pull from a different path for the CSV file.
+    #>
+
+    param(
+        $Path = "\\missvr2\mis\Apps\Anasazi\Active Directory Updates\AnasaziIDs.csv"
+        )
+    $IDs = Import-CSV $Path
+    Foreach ( $ID in $IDs )
+        {
+        Set-ADUser $ID.SAMAccountName -EmployeeID $ID.EmployeeID -Server DC01
+        }
+    $List = $IDs | Foreach { Get-ADUser $_.SAMAccountName -Properties -Server DC01 } 
+    $List | Select Name, EmployeeID
+    }
