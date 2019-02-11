@@ -838,7 +838,7 @@ Function New-LPSUsersFromCSV
     Version: 11.29.17
 
     .PARAMETER Path
-    Either the Path to the CSV File you are pulling from or if you are in the current directory just the name of the file.
+    Either the Path to the CSV File you are pulling from or if you are in the current directory just the name of the file. The CSV requires two columns: "SAMAccountName" and "EmployeeID".
 
     .PARAMETER DoNotSendEmail
     Specifies to not send email template.
