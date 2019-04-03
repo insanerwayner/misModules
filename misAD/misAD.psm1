@@ -339,6 +339,9 @@ Function Reset-Password
     .PARAMETER DoNotChangePasswordAtLogon
     Switch to set the user to NOT change their password at logon. If this is NOT specified the user will be prompted to change their password.
 
+    .PARAMETER GenerateRandomPassword
+    Switch that will set the password to a randomly generated password and output for you to provide to user.
+
     .EXAMPLE
     Reset-Password test
 
@@ -356,6 +359,12 @@ Function Reset-Password
 
     Description:
     Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select on the Server you specified
+    
+    .EXAMPLE
+    Reset-Password test -GenerateRandomPassword
+
+    Description:
+    Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select on the Server you specified
     #>
     [CmdletBinding()]
     param(
@@ -363,7 +372,9 @@ Function Reset-Password
         [string]
         $Filter,
         [switch]
-        $DoNotChangePasswordAtLogon
+        $DoNotChangePasswordAtLogon,
+        [switch]
+        $GenerateRandomPassword
         )
         DynamicParam 
             {
@@ -382,11 +393,20 @@ Function Reset-Password
             $samaccountname = (Select-User $Filter).samaccountname 
             if ( $samaccountname )
                 {
-                Set-AdAccountPassword -Identity $samaccountname -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "mouse99!" -Force) -server $server
+                If ( $GenerateRandomPassword )
+                    {
+                    $Password = New-RandomPassword
+                    }
+                Else
+                    {
+                    $Password = "mouse99!"
+                    }
+                Set-AdAccountPassword -Identity $samaccountname -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $Password -Force) -server $server
                 if ( !$DoNotChangePasswordAtLogon )
                     {
                     Set-ADuser -Identity $samaccountname -ChangePasswordAtLogon $True -server $server
                     }
+                Write-Host "Password set to: $($Password)" -ForegroundColor Green
                 }
             }
     } 
