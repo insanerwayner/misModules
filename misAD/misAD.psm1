@@ -650,7 +650,8 @@ Function New-LPSUser
     #User Variables
     $alias = $FirstN.toLower().substring(0,1)+$LastN.tolower().replace("-","").replace(" ","")
     $aliaswithMI = $FirstN.toLower().substring(0,1)+$MI.tolower()+$LastN.tolower().replace("-","").replace(" ","")
-    $Password = ConvertTo-SecureString 'mouse99!' -AsPlainText -Force
+    $UnencryptedPassword = New-RandomPassword
+    $Password = ConvertTo-SecureString $UnencryptedPassword -AsPlainText -Force
     #Write-Host "Creating New User: $FirstN $MI $LastN" -ForegroundColor White
     $Activity = "Creating New User: $FirstN $MI $LastN"
     Write-Progress -Activity $Activity -CurrentOperation $Activity 
@@ -734,7 +735,7 @@ Function New-LPSUser
 <p>
 Computer login ID: <b>$($Alias)</b>
 <br>
-Computer temporary password: <b>mouse99!</b>
+Computer temporary password: <b>$($UnencryptedPassword)</b>
 </p>  
 
 <p>Anasazi staff IDs:</p>
