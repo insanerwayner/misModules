@@ -949,6 +949,18 @@ Function Import-AnasaziIDs
 
 Function New-RandomPassword
     {
+    <#
+    .Synopsis
+    Generates a Random String to Be Used as a Password
+
+    .DESCRIPTION
+    A script to generate a random string of characters to be used for a password.
+
+    .NOTES   
+    Name: New-RandomPassword
+    Author: Wayne Reeves
+    Version: 4.3.19
+    #>
     Function Get-RandomCharacters($length, $characters)
         { 
         $random = 1..$length | ForEach-Object { Get-Random -Maximum $characters.length } 
