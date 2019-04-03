@@ -805,6 +805,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         Set-HomeDirectory -alias $alias -Department $Department -Office $Office
         #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
         $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
+        $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
         Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
         $groups = (Get-ADUser $Template -Properties memberof).memberof
         $groups | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
