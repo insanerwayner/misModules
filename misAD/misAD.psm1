@@ -980,10 +980,84 @@ Function New-RandomPassword
     $password = Get-RandomCharacters -length 5 -characters 'abcdefghiklmnoprstuvwxyz'
     $password += Get-RandomCharacters -length 1 -characters 'ABCDEFGHKLMNOPRSTUVWXYZ'
     $password += Get-RandomCharacters -length 1 -characters '1234567890'
-    $password += Get-RandomCharacters -length 1 -characters '!@#$%^&+?'
-    
+    $password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
     $password = Scramble-String -inputstring $password
-
-    Write-Host "Generated Password: $($password)"
+    $callwords = [char[]]$password | foreach {
+        switch -CaseSensitive ( $_ )
+            {
+            "a" { "alpha" }
+            "b" { "beta" }
+            "c" { "charlie" }
+            "d" { "delta" }
+            "e" { "echo" }
+            "f" { "foxtrot" }
+            "g" { "golf" }
+            "h" { "hotel" }
+            "i" { "india" }
+            "j" { "juliett" }
+            "k" { "kilo" }
+            "l" { "lima" }
+            "m" { "mike" }
+            "n" { "november" }
+            "o" { "oscar" }
+            "p" { "papa" }
+            "q" { "quebec" }
+            "r" { "romeo" }
+            "s" { "sierra" }
+            "t" { "tango" }
+            "u" { "uniform" }
+            "v" { "victor" }
+            "w" { "whiskey" }
+            "x" { "x-ray" }
+            "y" { "yankee" }
+            "z" { "zulu" }     
+            "A" { "ALPHA" }
+            "B" { "BETA" }
+            "C" { "CHARLIE" }
+            "D" { "DELTA" }
+            "E" { "ECHO" }
+            "F" { "FOXTROT" }
+            "G" { "GOLF" }
+            "H" { "HOTEL" }
+            "I" { "INDIA" }
+            "J" { "JULIETT" }
+            "K" { "KILO" }
+            "L" { "LIMA" }
+            "M" { "MIKE" }
+            "N" { "NOVEMBER" }
+            "O" { "OSCAR" }
+            "P" { "PAPA" }
+            "Q" { "QUEBEC" }
+            "R" { "ROMEO" }
+            "S" { "SIERRA" }
+            "T" { "TANGO" }
+            "U" { "UNIFORM" }
+            "V" { "VICTOR" }
+            "W" { "WHISKEY" }
+            "X" { "X-RAY" }
+            "Y" { "YANKEE" }
+            "Z" { "ZULU" }    
+            "0" { "zero" }
+            "1" { "one" }
+            "2" { "two" }
+            "3" { "three" }
+            "4" { "four" }
+            "5" { "five" }
+            "6" { "six" }
+            "7" { "seven" }
+            "8" { "eight" }
+            "9" { "nine" }
+            "!" { "exclamation" }
+            "@" { "at-sign" }
+            "#" { "number-sign" }
+            "$" { "dollar-sign" }
+            "%" { "percent" }
+            "&" { "ampersand" }
+            "+" { "plus-sign" }
+            }
+        }
+            
+    Write-Host "Generated Password: $($password)" -ForegroundColor Yellow
+    Write-Host "CallWords: $($callwords)" -ForegroundColor Yellow
     Return $password
     }
