@@ -982,5 +982,8 @@ Function New-RandomPassword
     $password += Get-RandomCharacters -length 1 -characters '1234567890'
     $password += Get-RandomCharacters -length 1 -characters '!@#$%^&+?'
     
-    Scramble-String -inputstring $password
+    $password = Scramble-String -inputstring $password
+
+    Write-Host "Generated Password: $($password)"
+    Return $password
     }
