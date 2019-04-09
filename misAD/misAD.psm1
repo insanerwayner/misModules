@@ -546,6 +546,9 @@ Function Get-PasswordExpirationList
     .PARAMETER Office
     This parameter filters the users down to a string that matches the Office they are assigned in ActiveDirectory
 
+    .PARAMETER GridView
+    Switch to output data to a GUI Gridview
+
     .EXAMPLE
     Get-PasswordExpirationList
 
@@ -558,7 +561,12 @@ Function Get-PasswordExpirationList
     Description:
     Will show you the Password Expirations for users that have an office that matches the string "Crisis"
     #>
-    param($office="")
+    param(
+        [string]
+        $office="",
+        [Switch]
+        $GridView
+        )
     $users = Get-ADUser -Filter * -properties office | ? { $_.office -match $office -and $_.Enabled -eq $True }
     $list = @()
     foreach ( $user in $users )
@@ -576,7 +584,14 @@ Function Get-PasswordExpirationList
         $info | Add-Member -MemberType NoteProperty -Name DaysLeft -Value $timeleft	
         $list += $info
         }
-    $list | Sort-Object DaysLeft | Out-GridView
+    If ( $GridView )
+        {
+        $list | Sort-Object DaysLeft | Out-GridView
+        }
+    Else
+        {
+        $list | Sort-Object DaysLeft
+        }
     }
 
 Function New-LPSUser
@@ -959,7 +974,7 @@ Function New-RandomPassword
     .NOTES   
     Name: New-RandomPassword
     Author: Wayne Reeves
-    Version: 4.3.19
+    Version: 11.29.17
     #>
     Function Get-RandomCharacters($length, $characters)
         { 
