@@ -696,17 +696,9 @@ Function New-LPSUser
                 }
             IDD 
                 {
-                if ( $office -match "Plano" )
-                    {
-                    $NoHome = $True
-                    $Stop = $True
-                    }
-                else 
-                    {
-                    $FileServer = "misfs1"
-                    $NewFolder = Join-Path "\\$($FileServer)\d`$\IDD Users\" $alias
-                    $LocalPath = Join-Path "D:\IDD Users\" $alias
-                    }
+                $FileServer = "misfs2"
+                $NewFolder = Join-Path "\\$FileServer\e`$\IDD User Shares\" $alias
+                $LocalPath = Join-Path "E:\IDD User Shares\" $alias
                 } 
             ECI 
                 { 
@@ -726,7 +718,7 @@ Function New-LPSUser
                 $ScriptBlock = { param($LocalPath,$alias) Add-NTFSAccess -Path $LocalPath -Account "CCMHMR\$($alias)" -AccessRights Modify }
                 Write-Progress -Activity $HDActivity -CurrentOperation "Setting File Permissions"
                 Invoke-Command $ScriptBlock -ArgumentList $LocalPath, $alias -ComputerName $FileServer
-                New-SMBShare –Name $alias –Path $LocalPath -FullAccess Everyone -CimSession $FileServer	| Out-Null
+                New-SMBShare -Name $alias -Path $LocalPath -FullAccess Everyone -CimSession $FileServer	| Out-Null
                 #Write-Host "Setting N Drive to $SharePath" -ForegroundColor Yellow
                 Write-Progress -Activity $HDActivity -CurrentOperation "Setting N Drive to $SharePath"	
                 Set-AdUser -Identity $alias -HomeDirectory $SharePath -HomeDrive "N:" -Server DC01
@@ -737,11 +729,6 @@ Function New-LPSUser
                 $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
                 #Write-Host "No HomeDirectory for $alias" -ForegroundColor Yellow
                 Write-Progress -Activity $HDActivity -Completed
-                if ( $Stop )
-                    {
-                    #Write-Host "$alias is IDD Plano. You will have to go set up HomeDirectory in the Active Directory Users and Computers Console" -ForegroundColor Cyan
-                    $UserObject.HomeDirectory = "Manually Setup"
-                    }
                 }
         }
     
