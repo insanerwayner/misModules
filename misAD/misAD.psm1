@@ -686,25 +686,25 @@ Function New-LPSUser
                 {
                 $FileServer = "misfs1"
                 $NewFolder = Join-Path "\\$FileServer\d`$\User Shares\" $alias
-                $LocalPath = Join-Path "D:\User Shares\" $alias
+                $LocalPath = "D:\User Shares\$($alias)"
                 }
             BH 
                 { 
                 $FileServer = "misfs1"
                 $NewFolder = Join-Path "\\$FileServer\d`$\User Shares\" $alias
-                $LocalPath = Join-Path "D:\User Shares\" $alias
+                $LocalPath = "D:\User Shares\$($alias)"
                 }
             IDD 
                 {
                 $FileServer = "misfs2"
                 $NewFolder = Join-Path "\\$FileServer\e`$\IDD User Shares\" $alias
-                $LocalPath = Join-Path "E:\IDD User Shares\" $alias
+                $LocalPath = "E:\IDD User Shares\$($alias)"
                 } 
             ECI 
                 { 
                 $FileServer = "misfs1"
                 $NewFolder = Join-Path "\\$($FileServer)\d`$\ECI USERS\" $alias
-                $LocalPath = Join-Path "D:\ECI USERS\" $alias
+                $LocalPath = "D:\ECI USERS\$($alias)"
                 }
             Hotline { $NoHome = $True }
             }
