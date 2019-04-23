@@ -977,9 +977,9 @@ Function New-RandomPassword
         }
 
     # Get Random Strings
-    $password = Get-RandomCharacters -length 5 -characters 'abcdefghiklmnoprstuvwxyz'
-    $password += Get-RandomCharacters -length 1 -characters 'ABCDEFGHKLMNOPRSTUVWXYZ'
-    $password += Get-RandomCharacters -length 1 -characters '1234567890'
+    $password = Get-RandomCharacters -length 5 -characters 'abcdefghikmnprstuvwxyz'
+    $password += Get-RandomCharacters -length 1 -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
+    $password += Get-RandomCharacters -length 1 -characters '2345678'
     $password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
     $password = Scramble-String -inputstring $password
     $callwords = [char[]]$password | foreach {
