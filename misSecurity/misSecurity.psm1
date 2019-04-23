@@ -181,3 +181,139 @@ Function Get-XMLPassword
             }
         }
     }
+
+Function New-RandomPassword
+    {
+    <#
+    .Synopsis
+    Generates a Random String to Be Used as a Password
+
+    .DESCRIPTION
+    A script to generate a random string of characters to be used for a password.
+
+    .NOTES
+    Name: New-RandomPassword
+    Author: Wayne Reeves
+    Version: 4.3.19
+    #>
+    param(
+        [switch]
+        $CallWords
+        )
+    Function Get-RandomCharacters($length, $characters)
+        { 
+        $random = 1..$length | ForEach-Object { Get-Random -Maximum $characters.length } 
+        $private:ofs="" 
+        return [String]$characters[$random]
+        }
+
+    Function Scramble-String([string]$inputString)
+        {
+        $characterArray = $inputString.ToCharArray()   
+        $scrambledStringArray = $characterArray | Get-Random -Count $characterArray.Length     
+        $outputString = -join $scrambledStringArray
+        return $outputString 
+        }
+
+    # Get Random Strings
+    $password = Get-RandomCharacters -length 5 -characters 'abcdefghikmnprstuvwxyz'
+    $password += Get-RandomCharacters -length 1 -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
+    $password += Get-RandomCharacters -length 1 -characters '2345678'
+    $password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
+    $password = Scramble-String -inputstring $password
+    Return $password
+    }
+
+Get-Callwords
+    {
+    <#
+    .Synopsis
+    Prints out call words for each character of a given string
+
+    .PARAMETER String
+    The string you provide to be spelled out with call words.
+
+    .NOTES
+    Name: Get-CallWords
+    Author: Wayne Reeves
+    Version: 4.23.19
+    #>
+    param(
+        [string]
+        $String
+        )
+    $CallWords = [char[]]$String | foreach {
+        switch -CaseSensitive ( $_ )
+            {
+            "a" { "alpha" }
+            "b" { "beta" }
+            "c" { "charlie" }
+            "d" { "delta" }
+            "e" { "echo" }
+            "f" { "foxtrot" }
+            "g" { "golf" }
+            "h" { "hotel" }
+            "i" { "india" }
+            "j" { "juliett" }
+            "k" { "kilo" }
+            "l" { "lima" }
+            "m" { "mike" }
+            "n" { "november" }
+            "o" { "oscar" }
+            "p" { "papa" }
+            "q" { "quebec" }
+            "r" { "romeo" }
+            "s" { "sierra" }
+            "t" { "tango" }
+            "u" { "uniform" }
+            "v" { "victor" }
+            "w" { "whiskey" }
+            "x" { "x-ray" }
+            "y" { "yankee" }
+            "z" { "zulu" }     
+            "A" { "ALPHA" }
+            "B" { "BETA" }
+            "C" { "CHARLIE" }
+            "D" { "DELTA" }
+            "E" { "ECHO" }
+            "F" { "FOXTROT" }
+            "G" { "GOLF" }
+            "H" { "HOTEL" }
+            "I" { "INDIA" }
+            "J" { "JULIETT" }
+            "K" { "KILO" }
+            "L" { "LIMA" }
+            "M" { "MIKE" }
+            "N" { "NOVEMBER" }
+            "O" { "OSCAR" }
+            "P" { "PAPA" }
+            "Q" { "QUEBEC" }
+            "R" { "ROMEO" }
+            "S" { "SIERRA" }
+            "T" { "TANGO" }
+            "U" { "UNIFORM" }
+            "V" { "VICTOR" }
+            "W" { "WHISKEY" }
+            "X" { "X-RAY" }
+            "Y" { "YANKEE" }
+            "Z" { "ZULU" }    
+            "0" { "zero" }
+            "1" { "one" }
+            "2" { "two" }
+            "3" { "three" }
+            "4" { "four" }
+            "5" { "five" }
+            "6" { "six" }
+            "7" { "seven" }
+            "8" { "eight" }
+            "9" { "nine" }
+            "!" { "exclamation" }
+            "@" { "at-sign" }
+            '#' { "number-sign" }
+            "$" { "dollar-sign" }
+            "%" { "percent" }
+            "&" { "ampersand" }
+            "+" { "plus-sign" }
+            }
+        return $CallWords
+        }
