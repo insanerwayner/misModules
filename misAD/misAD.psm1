@@ -411,6 +411,7 @@ Function Reset-Password
                     {
                     $CallWords = Get-CallWords -String $Password
                     Write-Host "Call Words: $($CallWords)" -ForegroundColor Yellow
+                    }
                 }
             }
     } 

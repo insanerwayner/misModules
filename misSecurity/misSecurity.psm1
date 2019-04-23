@@ -224,7 +224,7 @@ Function New-RandomPassword
     Return $password
     }
 
-Get-Callwords
+Function Get-Callwords
     {
     <#
     .Synopsis
@@ -315,5 +315,6 @@ Get-Callwords
             "&" { "ampersand" }
             "+" { "plus-sign" }
             }
-        return $CallWords
         }
+    return $CallWords
+    }
