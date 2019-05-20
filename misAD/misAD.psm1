@@ -794,6 +794,16 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         Write-Progress -Activity $Activity -Completed
         #Write-Host "Both $alias and $aliaswithMI taken. Canceled." -ForegroundColor Red
         $Cancel = $True
+        $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $Fulln
+        If ( $alias -eq $aliaswithMI )
+            {
+            $UserObject | Add-Member -MemberType Noteproperty -Name Alias -Value "User Creation Cancelled. $($alias) already exists and no MI was provided." 
+            }
+        else
+            {
+            $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value "User Creation Cancelled. $($alias) and $($aliaswithMI) already exist."
+            }
+        Return $UserObject
         }
     
     If ( !$Cancel )
