@@ -191,6 +191,21 @@ Function New-RandomPassword
     .DESCRIPTION
     A script to generate a random string of characters to be used for a password.
 
+    .PARAMETER CallWords
+    Switch to display call words to read each character to user.
+
+    .EXAMPLE
+    New-RandomPassword
+
+    Description:
+    Generates a randomy password string.
+
+    .EXAMPLE
+    New-RandomPassword -CallWords
+
+    Description:
+    Generates a random password string and also displays call words for reading the characters to the user.
+
     .NOTES
     Name: New-RandomPassword
     Author: Wayne Reeves
@@ -222,6 +237,10 @@ Function New-RandomPassword
     $password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
     $password = Scramble-String -inputstring $password
     Return $password
+    If ( $CallWords )
+        {
+        Get-Callwords $password
+        }
     }
 
 Function Get-Callwords
