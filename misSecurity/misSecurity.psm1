@@ -240,6 +240,7 @@ Function New-RandomPassword
     If ( $CallWords )
         {
         Get-Callwords $password
+        Write-Host "Goober"
         }
     }
 
