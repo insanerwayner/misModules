@@ -236,11 +236,14 @@ Function New-RandomPassword
     $password += Get-RandomCharacters -length 1 -characters '2345678'
     $password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
     $password = Scramble-String -inputstring $password
-    Return $password
     If ( $CallWords )
         {
-        Get-Callwords $password
-        Write-Host "Goober"
+        Write-Host $Password
+        Write-Host "$(Get-CallWords $password)"
+        }
+    Else
+        {
+        return $password
         }
     }
 
