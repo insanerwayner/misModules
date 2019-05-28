@@ -337,6 +337,7 @@ Function Get-Callwords
             "%" { "percent" }
             "&" { "ampersand" }
             "+" { "plus-sign" }
+            "?" { "question-mark" }
             }
         }
     return $CallWords
