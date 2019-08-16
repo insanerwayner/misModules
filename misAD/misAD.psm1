@@ -826,8 +826,16 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
             Set-ADUser -Identity $alias -Enabled $False -Server DC01
             }
         Set-ADUser $alias -Department $Department -Office $Office -Title $Title -Description $Title -Server dc01
-        Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
-        Set-HomeDirectory -alias $alias -Department $Department -Office $Office
+        If ( $HomeDirectory )
+            {
+            Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
+            Set-HomeDirectory -alias $alias -Department $Department -Office $Office
+            }
+        Else    
+            {
+            $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
+            Write-Progress -Activity $HDActivity -Completed
+            }
         #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
         $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
         $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
