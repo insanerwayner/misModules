@@ -1000,8 +1000,4 @@ Function Add-PhoneUser
         Set-ADUser $Username -Replace @{ logonhours = $LogonHours } 
         Set-CASMailbox $Username -ActiveSyncEnabled $True 
         }
-    Else
-        {
-        Write-Error "$($Username) does not exist"
-        }
     }
