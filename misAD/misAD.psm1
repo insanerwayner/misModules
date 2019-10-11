@@ -969,8 +969,8 @@ Function Add-PhoneUser
         {
         [byte[]]$LogonHours = @(255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255)
         Add-ADGroupMember -Identity "All Hours Access" -Members $Username -Verbose
-        Set-ADUser $Username -Replace { logonhours = $LogonHours } -Verbose
-        Set-CASMailbox $Username -ActiveSyncEnabled -eq $True -Verbose
+        Set-ADUser $Username -Replace @{ logonhours = $LogonHours } -Verbose
+        Set-CASMailbox $Username -ActiveSyncEnabled $True -Verbose
         }
     Else
         {
