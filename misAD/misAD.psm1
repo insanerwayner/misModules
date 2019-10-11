@@ -960,3 +960,20 @@ Function Import-AnasaziIDs
     $List | Select Name, EmployeeID
     }
 
+Function Add-PhoneUser
+    {
+    param(
+        [string]$Username
+        )
+    if ( Get-ADUser $Username )
+        {
+        [byte[]]$LogonHours = @(255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255)
+        Add-ADGroupMember -Identity "All Hours Access" -Members $Username -Verbose
+        Set-ADUser $Username -Replace { logonhours = $LogonHours } -Verbose
+        Set-CASMailbox $Username -ActiveSyncEnabled -eq $True -Verbose
+        }
+    Else
+        {
+        Write-Error "$($Username) does not exist"
+        }
+    }
