@@ -568,15 +568,11 @@ Function Get-PasswordExpiration
 	[Alias('Username')]
 	[string[]]$SamAccountName
 	)
-    Begin
-	{
-	$Username = $SamAccountName
-	}
     Process
 	{
-	if ( $UserName )
+	if ( $SamAccountName )
 	    {	
-	    $Users = Get-ADUser $UserName -Properties PasswordLastSet, PasswordNeverExpires
+	    $Users = Get-ADUser $SamAccountName -Properties PasswordLastSet, PasswordNeverExpires
 	    }
 	else
 	    {
