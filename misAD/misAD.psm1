@@ -564,7 +564,7 @@ Function Get-PasswordExpiration
     #>
     [cmdletBinding()]
     param(
-	[paramater(ValueFromPipeline=$True)]
+	[parameter(ValueFromPipeline=$True)]
 	[Alias('SamAccountName')]
 	[string[]]$UserName
 	)
