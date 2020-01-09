@@ -593,7 +593,7 @@ Function Get-PasswordExpiration
 	    Name = $user.name
 	    Username = $username
 	    LastSet = $LastSet
-	    Expires = expires
+	    Expires = $expires
 	    DaysLeft = $daysleft
 	}
 	$info.PsObject.TypeNames.Insert(0,'PasswordExpiration')
