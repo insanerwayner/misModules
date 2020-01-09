@@ -566,7 +566,7 @@ Function Get-PasswordExpiration
     param(
 	[paramater(ValueFromPipeline=$True)]
 	[Alias('SamAccountName')]
-	[string[]]$UserName,
+	[string[]]$UserName
 	)
     if ( $UserName )
     	{	
