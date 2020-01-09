@@ -572,14 +572,13 @@ Function Get-PasswordExpiration
 	{
 	If (!($SamAccountName))
 	    {
-	    $SamAccountName = (Get-ADUser -Filter *).samaccountname
+	    [string]$Username = (Get-ADUser -Filter *).samaccountname
 	    }
 	}
     Process
 	{
-	$SamAccountName.GetType()
-	$SamAccountName | Get-Member
-	$Users = Get-ADUser -Identity $SamAccountName | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
+	[string]$Username = $Samaccountname
+	$Users = Get-ADUser -Identity $Username | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
 	$list = @()
 	foreach ( $user in $users )
 	    {
