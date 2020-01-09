@@ -568,13 +568,13 @@ Function Get-PasswordExpiration
 	[Alias('Username')]
 	[string[]]$SamAccountName
 	)
-    Begin
-	{
-	If (!($SamAccountName))
-	    {
-	    [string]$Username = (Get-ADUser -Filter *).samaccountname
-	    }
-	}
+#    Begin
+#	{
+#	If (!($SamAccountName))
+#	    {
+#	    [string]$Username = (Get-ADUser -Filter *).samaccountname
+#	    }
+#	}
     Process
 	{
 	[string]$Username = $Samaccountname
