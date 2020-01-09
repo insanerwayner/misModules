@@ -569,6 +569,7 @@ Function Get-PasswordExpiration
     $list = @()
     foreach ( $user in $users )
         {
+	$ErrorActionPreference = Stop
 	try
 	    {
 	    $username = $user.SamAccountName
