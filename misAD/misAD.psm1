@@ -568,18 +568,15 @@ Function Get-PasswordExpiration
 	[Alias('Username')]
 	[string[]]$SamAccountName
 	)
+    Begin
+	{
+	If !($SamAccountName)
+	    {
+	    $SamAccountName = (Get-ADUser -Filter *).samaccountname
+	    }
     Process
 	{
-	if ( $SamAccountName )
-	    {	
-	    $Users = $SamAccountName | % { Get-ADUser -Identity $_ -Properties PasswordLastSet, PasswordNeverExpires }
-	    $SamAccountName
-	    }
-	else
-	    {
-	    $users = Get-ADUser -Filter * -properties PasswordLastSet, PasswordNeverExpires 
-	    }
-	$Users = $Users | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
+	$Users = Get-ADUser -Identity $SamAccountName | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
 	$list = @()
 	foreach ( $user in $users )
 	    {
