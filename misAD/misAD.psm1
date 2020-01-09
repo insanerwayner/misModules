@@ -570,10 +570,11 @@ Function Get-PasswordExpiration
 	)
     Begin
 	{
-	If !($SamAccountName)
+	If (!($SamAccountName))
 	    {
 	    $SamAccountName = (Get-ADUser -Filter *).samaccountname
 	    }
+	}
     Process
 	{
 	$Users = Get-ADUser -Identity $SamAccountName | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
