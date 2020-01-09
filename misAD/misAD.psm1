@@ -572,7 +572,7 @@ Function Get-PasswordExpiration
 	{
 	if ( $SamAccountName )
 	    {	
-	    $Users = Get-ADUser $SamAccountName -Properties PasswordLastSet, PasswordNeverExpires
+	    $Users = Get-ADUser $SamAccountName.samaccountname -Properties PasswordLastSet, PasswordNeverExpires
 	    }
 	else
 	    {
