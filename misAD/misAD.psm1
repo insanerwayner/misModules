@@ -565,20 +565,18 @@ Function Get-PasswordExpiration
     #>
     [cmdletBinding()]
     param($office="")
-    $users = Get-ADUser -Filter * -properties office | ? { $_.office -match $office -and $_.Enabled -eq $True }
+    $users = Get-ADUser -Filter * -properties Office, PasswordLastSet, PasswordNeverExpires | ? { $_.Office -match $Office -and $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
     $list = @()
     foreach ( $user in $users )
         {
         $username = $user.SamAccountName
-        $searcher=New-Object DirectoryServices.DirectorySearcher
-        $searcher.Filter="(&(samaccountname=$username)(!(userAccountControl:1.2.840.113556.1.4.803:=65536))(enabled=true))"
-        $results=$searcher.findone()
-        $lastset = [datetime]::fromfiletime($results.properties.pwdlastset[0])
+        $lastset = $user.PasswordLastSet
         $timeleft = 90 - (( Get-Date ) - $lastset ).days
 	$lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
         $expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
         $info = New-Object -TypeName PSObject
         $info | Add-Member -MemberType NoteProperty -Name Name -Value $user.Name
+        $info | Add-Member -MemberType NoteProperty -Name Username -Value $username
         $info | Add-Member -MemberType NoteProperty -Name LastSet -Value $LastSet
         $info | Add-Member -MemberType NOteProperty -Name Expires -Value $expires
         $info | Add-Member -MemberType NoteProperty -Name DaysLeft -Value $timeleft	
