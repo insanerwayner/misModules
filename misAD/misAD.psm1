@@ -581,13 +581,22 @@ Function Get-PasswordExpiration
 	    $expires = "NA"
 	    $daysleft = "NA"
 	    }
-	$username = $user.SamAccountName
-	$info = New-Object -TypeName PasswordExpiration
-	$info | Add-Member -MemberType NoteProperty -Name Name -Value $user.Name
-	$info | Add-Member -MemberType NoteProperty -Name Username -Value $username
-	$info | Add-Member -MemberType NoteProperty -Name LastSet -Value $LastSet
-	$info | Add-Member -MemberType NOteProperty -Name Expires -Value $expires
-	$info | Add-Member -MemberType NoteProperty -Name DaysLeft -Value $daysleft	
+	#$username = $user.SamAccountName
+	#$info = New-Object -TypeName PasswordExpiration
+	#$info | Add-Member -MemberType NoteProperty -Name Name -Value $user.Name
+	#$info | Add-Member -MemberType NoteProperty -Name Username -Value $username
+	#$info | Add-Member -MemberType NoteProperty -Name LastSet -Value $LastSet
+	#$info | Add-Member -MemberType NOteProperty -Name Expires -Value $expires
+	#$info | Add-Member -MemberType NoteProperty -Name DaysLeft -Value $daysleft	
+	# PsCustomObject
+	$info = [pscustomobject]@{
+	    Name = $user.name
+	    Username = $username
+	    LastSet = $LastSet
+	    Expires = expires
+	    DaysLeft = $daysleft
+	}
+	$info.PsObject.TypeNames.Insert(0,'PasswordExpiration')
 	$list += $info
         }
     $list | Sort-Object DaysLeft 
