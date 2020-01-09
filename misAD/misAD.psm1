@@ -569,27 +569,27 @@ Function Get-PasswordExpiration
     $list = @()
     foreach ( $user in $users )
         {
-	$ErrorActionPreference = Stop
-	try
+	If ( $user.PasswordLastSet )
 	    {
-	    $username = $user.SamAccountName
 	    $lastset = Get-Date $user.PasswordLastSet
 	    $daysleft = 90 - (( Get-Date ) - $lastset ).days
 	    $expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
 	    $lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
-	    $info = New-Object -TypeName PSObject
-	    $info | Add-Member -MemberType NoteProperty -Name Name -Value $user.Name
-	    $info | Add-Member -MemberType NoteProperty -Name Username -Value $username
-	    $info | Add-Member -MemberType NoteProperty -Name LastSet -Value $LastSet
-	    $info | Add-Member -MemberType NOteProperty -Name Expires -Value $expires
-	    $info | Add-Member -MemberType NoteProperty -Name DaysLeft -Value $daysleft	
-	    $list += $info
 	    }
-	catch
+	else
 	    {
-	    $user
-	    $error
+	    $lastset = "Never"
+	    $expires = "NA"
+	    $daysleft = "NA"
 	    }
+	$username = $user.SamAccountName
+	$info = New-Object -TypeName PSObject
+	$info | Add-Member -MemberType NoteProperty -Name Name -Value $user.Name
+	$info | Add-Member -MemberType NoteProperty -Name Username -Value $username
+	$info | Add-Member -MemberType NoteProperty -Name LastSet -Value $LastSet
+	$info | Add-Member -MemberType NOteProperty -Name Expires -Value $expires
+	$info | Add-Member -MemberType NoteProperty -Name DaysLeft -Value $daysleft	
+	$list += $info
         }
     $list | Sort-Object DaysLeft 
     }
