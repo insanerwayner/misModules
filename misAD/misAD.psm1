@@ -572,8 +572,8 @@ Function Get-PasswordExpiration
         $username = $user.SamAccountName
         $lastset = $user.PasswordLastSet
         $timeleft = 90 - (( Get-Date ) - $lastset ).days
-	$lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
         $expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
+	$lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
         $info = New-Object -TypeName PSObject
         $info | Add-Member -MemberType NoteProperty -Name Name -Value $user.Name
         $info | Add-Member -MemberType NoteProperty -Name Username -Value $username
