@@ -568,45 +568,51 @@ Function Get-PasswordExpiration
 	[Alias('SamAccountName')]
 	[string[]]$UserName
 	)
-    if ( $UserName )
-    	{	
-	$Users = $UserName | % { Get-ADUser $_ -Properties PasswordLastSet, PasswordNeverExpires }
-	$Users
-	}
-    else
+    Process
 	{
-	$users = Get-ADUser -Filter * -properties PasswordLastSet, PasswordNeverExpires 
-	}
-    $Users = $Users | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
-    $list = @()
-    foreach ( $user in $users )
-        {
-	If ( $user.PasswordLastSet )
-	    {
-	    $lastset = Get-Date $user.PasswordLastSet
-	    $daysleft = 90 - (( Get-Date ) - $lastset ).days
-	    $expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
-	    $lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
+	if ( $UserName )
+	    {	
+	    $Users = $UserName | % { Get-ADUser $_ -Properties PasswordLastSet, PasswordNeverExpires }
+	    $Users
 	    }
 	else
 	    {
-	    $lastset = "Never"
-	    $expires = "NA"
-	    $daysleft = "NA"
+	    $users = Get-ADUser -Filter * -properties PasswordLastSet, PasswordNeverExpires 
 	    }
-	$username = $user.SamAccountName
-	# PsCustomObject
-	$info = [pscustomobject]@{
-	    Name = $user.name
-	    SamAccountName = $username
-	    PasswordLastSet = $LastSet
-	    PasswordExpires = $expires
-	    DaysUntilPasswordExpiration = $daysleft
-	}
+	$Users = $Users | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
+	$list = @()
+	foreach ( $user in $users )
+	    {
+	    If ( $user.PasswordLastSet )
+		{
+		$lastset = Get-Date $user.PasswordLastSet
+		$daysleft = 90 - (( Get-Date ) - $lastset ).days
+		$expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
+		$lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
+		}
+	    else
+		{
+		$lastset = "Never"
+		$expires = "NA"
+		$daysleft = "NA"
+		}
+	    $username = $user.SamAccountName
+	    # PsCustomObject
+	    $info = [pscustomobject]@{
+		Name = $user.name
+		SamAccountName = $username
+		PasswordLastSet = $LastSet
+		PasswordExpires = $expires
+		DaysUntilPasswordExpiration = $daysleft
+	    }
 	$info.PsObject.TypeNames.Insert(0,'PasswordExpiration')
 	$list += $info
         }
-    $list | Sort-Object DaysUntilPasswordExpiration
+    }
+    End
+	{
+	$list | Sort-Object DaysUntilPasswordExpiration
+	}
     }
 
 Function New-LPSUser
