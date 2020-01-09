@@ -582,7 +582,7 @@ Function Get-PasswordExpiration
 	    $daysleft = "NA"
 	    }
 	$username = $user.SamAccountName
-	$info = New-Object -TypeName PSObject
+	$info = New-Object -TypeName PasswordExpiration
 	$info | Add-Member -MemberType NoteProperty -Name Name -Value $user.Name
 	$info | Add-Member -MemberType NoteProperty -Name Username -Value $username
 	$info | Add-Member -MemberType NoteProperty -Name LastSet -Value $LastSet
