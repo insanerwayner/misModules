@@ -563,8 +563,20 @@ Function Get-PasswordExpiration
     Will show you the Password Expirations for users that have an office that matches the string "Crisis"
     #>
     [cmdletBinding()]
-    param($office="")
-    $users = Get-ADUser -Filter * -properties Office, PasswordLastSet, PasswordNeverExpires | ? { $_.Office -match $Office -and $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
+    param(
+	[paramater(ValueFromPipeline=$True)]
+	[Alias('SamAccountName')
+	[string[]]$UserName,
+	)
+    if ( $UserName )
+    	{	
+	$Users = $UserName | % { Get-ADUser $_ -Properties PasswordLastSet, PasswordNeverExpires }
+	}
+    else
+	{
+	$users = Get-ADUser -Filter * -properties PasswordLastSet, PasswordNeverExpires 
+	}
+    $Users = $Users | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
     $list = @()
     foreach ( $user in $users )
         {
