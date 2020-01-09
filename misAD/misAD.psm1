@@ -565,7 +565,7 @@ Function Get-PasswordExpiration
     #>
     [cmdletBinding()]
     param($office="")
-    $users = Get-ADUser msheppard -properties Office, PasswordLastSet, PasswordNeverExpires | ? { $_.Office -match $Office -and $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
+    $users = Get-ADUser -Filter * -properties Office, PasswordLastSet, PasswordNeverExpires | ? { $_.Office -match $Office -and $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
     $list = @()
     foreach ( $user in $users )
         {
