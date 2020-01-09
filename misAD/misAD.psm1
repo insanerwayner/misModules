@@ -1,5 +1,4 @@
-﻿#requires -Modules ActiveDirectory, misScripting
-Function Find-ADComputer
+﻿Function Find-ADComputer
     {
     <#
     .Synopsis
