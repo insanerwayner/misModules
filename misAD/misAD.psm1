@@ -577,6 +577,7 @@ Function Get-PasswordExpiration
 	}
    Process
 	{
+	[string]$Username = $SamAccountName
 	$Users = Get-ADUser -Identity $Username -properties passwordneverexpires, passwordlastset | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
 	}
     End
