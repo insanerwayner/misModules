@@ -568,47 +568,43 @@ Function Get-PasswordExpiration
 	[Alias('Username')]
 	[string[]]$SamAccountName
 	)
-#    Begin
-#	{
-#	If (!($SamAccountName))
-#	    {
-#	    [string]$Username = (Get-ADUser -Filter *).samaccountname
-#	    }
-#	}
-    Process
+    Begin
 	{
-	[string]$un = $Samaccountname
-	$Users = Get-ADUser -Identity $un | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
-	$Users
-	$list = @()
-	foreach ( $user in $users )
+	If (!($SamAccountName))
 	    {
-	    If ( $user.PasswordLastSet )
-		{
-		$lastset = Get-Date $user.PasswordLastSet
-		$daysleft = 90 - (( Get-Date ) - $lastset ).days
-		$expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
-		$lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
-		}
-	    else
-		{
-		$lastset = "Never"
-		$expires = "NA"
-		$daysleft = "NA"
-		}
-	    $username = $user.SamAccountName
-	    # PsCustomObject
-	    $info = [pscustomobject]@{
-		Name = $user.name
-		SamAccountName = $username
-		PasswordLastSet = $LastSet
-		PasswordExpires = $expires
-		DaysUntilPasswordExpiration = $daysleft
+	    [string]$Username = (Get-ADUser -Filter *).samaccountname
+	    }
+	}
+   Process
+	{
+	[string]$Username = $Samaccountname
+	$User = Get-ADUser -Identity $Username -properties passwordneverexpires, passwordlastset | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
+	$list = @()
+	If ( $user.PasswordLastSet )
+	    {
+	    $lastset = Get-Date $user.PasswordLastSet
+	    $daysleft = 90 - (( Get-Date ) - $lastset ).days
+	    $expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
+	    $lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
+	    }
+	else
+	    {
+	    $lastset = "Never"
+	    $expires = "NA"
+	    $daysleft = "NA"
+	    }
+	$username = $user.SamAccountName
+	# PsCustomObject
+	$info = [pscustomobject]@{
+	    Name = $user.name
+	    SamAccountName = $username
+	    PasswordLastSet = $LastSet
+	    PasswordExpires = $expires
+	    DaysUntilPasswordExpiration = $daysleft
 	    }
 	$info.PsObject.TypeNames.Insert(0,'PasswordExpiration')
 	$list += $info
         }
-    }
     End
 	{
 	$list | Sort-Object DaysUntilPasswordExpiration
