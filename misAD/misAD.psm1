@@ -577,38 +577,39 @@ Function Get-PasswordExpiration
 	}
    Process
 	{
-	[string]$Username = $Samaccountname
-	$User = Get-ADUser -Identity $Username -properties passwordneverexpires, passwordlastset | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
-	$list = @()
-	If ( $user.PasswordLastSet )
-	    {
-	    $lastset = Get-Date $user.PasswordLastSet
-	    $daysleft = 90 - (( Get-Date ) - $lastset ).days
-	    $expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
-	    $lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
-	    }
-	else
-	    {
-	    $lastset = "Never"
-	    $expires = "NA"
-	    $daysleft = "NA"
-	    }
-	$username = $user.SamAccountName
-	# PsCustomObject
-	$info = [pscustomobject]@{
-	    Name = $user.name
-	    SamAccountName = $username
-	    PasswordLastSet = $LastSet
-	    PasswordExpires = $expires
-	    DaysUntilPasswordExpiration = $daysleft
-	    }
-	$info.PsObject.TypeNames.Insert(0,'PasswordExpiration')
-	$list += $info
-        }
+	$Users = Get-ADUser -Identity $Username -properties passwordneverexpires, passwordlastset | ? { $_.Enabled -eq $True -and $_.PasswordNeverExpires -eq $False }
+	}
     End
 	{
-	$list | Sort-Object DaysUntilPasswordExpiration
-	}
+	$list = @()
+	foreach ( $user in $users )
+	    {
+	    If ( $user.PasswordLastSet )
+		{
+		$lastset = Get-Date $user.PasswordLastSet
+		$daysleft = 90 - (( Get-Date ) - $lastset ).days
+		$expires = Get-Date $lastset.adddays(90) -Format "yyyy/MM/dd HH:mm"
+		$lastset = Get-Date $lastset -Format "yyyy/MM/dd HH:mm"
+		}
+	    else
+		{
+		$lastset = "Never"
+		$expires = "NA"
+		$daysleft = "NA"
+		}
+	    $username = $user.SamAccountName
+	    # PsCustomObject
+	    $info = [pscustomobject]@{
+		Name = $user.name
+		SamAccountName = $username
+		PasswordLastSet = $LastSet
+		PasswordExpires = $expires
+		DaysUntilPasswordExpiration = $daysleft
+		}
+	    $info.PsObject.TypeNames.Insert(0,'PasswordExpiration')
+	    $list += $info
+	    }
+    $list | Sort-Object DaysUntilPasswordExpiration
     }
 
 Function New-LPSUser
