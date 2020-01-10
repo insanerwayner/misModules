@@ -609,7 +609,8 @@ Function Get-PasswordExpiration
 	    $info.PsObject.TypeNames.Insert(0,'PasswordExpiration')
 	    $list += $info
 	    }
-    $list | Sort-Object DaysUntilPasswordExpiration
+	$list | Sort-Object DaysUntilPasswordExpiration
+	}
     }
 
 Function New-LPSUser
