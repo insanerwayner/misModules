@@ -582,9 +582,11 @@ Function Get-PasswordExpiration
 	}
     End
 	{
+        $Users
 	$list = @()
 	foreach ( $user in $users )
 	    {
+            $user
 	    If ( $user.PasswordLastSet )
 		{
 		$lastset = Get-Date $user.PasswordLastSet
