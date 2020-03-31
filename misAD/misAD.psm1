@@ -813,6 +813,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         {
         New-Mailbox -UserPrincipalName $principal -PrimarySmtpAddress $email -alias $alias -Name $fulln -password $Password -FirstName $firstn -LastName $lastn -DisplayName $fulln -ResetPasswordOnNextLogon $true -erroraction stop -DomainController DC01 | Out-Null
         #Write-Host "Setting ActiveSync and OWA Access" -ForegroundColor Yellow
+	Set-Mailbox -Identity $alias -EmailAddressPolicyEnabled $True -DomainController DC01
         Write-Progress -Activity $Activity -CurrentOperation "Setting ActiveSync and OWA Access"
         Set-CASMailbox -Identity $alias -ActiveSyncEnabled $ActiveSyncEnabled -owaenabled $false -DomainController DC01
         $UserObject | Add-Member -MemberType NoteProperty -Name ActiveSyncEnabled -Value $ActiveSyncEnabled
