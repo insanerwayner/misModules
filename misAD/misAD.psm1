@@ -591,7 +591,7 @@ Function New-LPSUser
     Creates a new LifePath User
 
     .DESCRIPTION
-    Will set properties for LifePath users, creating both the User and the Mailbox with correct Group Memberships
+    Will set properties for LifePath users, creating the user with correct Group Memberships
 
     .NOTES   
     Name: New-LPSUser
@@ -630,14 +630,24 @@ Function New-LPSUser
     .PARAMETER ActiveSyncEnabled
     $True or $False Value to enable ActiveSync for Mailbox (Default False)
 
+    .PARAMETER NoMailbox
+    Do not create a mailbox for this user. Will not add the user to the 'E3 Basic License' Security Group, thus not prompting assigning a license which will prevent Exchange Online from creating a mailbox.
+
     .PARAMETER DoNotSendEmail 
     Switch to NOT send email template to yourself.
-
+    
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren 
 
     Description:
     Will create a new user and mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled, hidden from Address Book, and ActiveSync Disabled.
+    An email template will be sent to you for sending on to staff.
+
+    .EXAMPLE
+    New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -NoMailbox $True
+
+    Description:
+    Will create a new user without a mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled, hidden from Address Book, and ActiveSync Disabled.
     An email template will be sent to you for sending on to staff.
 
     .EXAMPLE
@@ -670,6 +680,7 @@ Function New-LPSUser
         [bool]$HomeDirectory=$True, 
         [bool]$Enabled=$False, 
         [bool]$ActiveSyncEnabled=$False,
+	[bool]$NoMailbox=$False,
         [switch]$DoNotSendEmail
         )
     #User Variables
@@ -811,22 +822,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
     
     If ( !$Cancel )
         {
-        New-Mailbox -UserPrincipalName $principal -PrimarySmtpAddress $email -alias $alias -Name $fulln -password $Password -FirstName $firstn -LastName $lastn -DisplayName $fulln -ResetPasswordOnNextLogon $true -erroraction stop -DomainController DC01 | Out-Null
-        #Write-Host "Setting ActiveSync and OWA Access" -ForegroundColor Yellow
-	Set-Mailbox -Identity $alias -EmailAddressPolicyEnabled $True -DomainController DC01
-        Write-Progress -Activity $Activity -CurrentOperation "Setting ActiveSync and OWA Access"
-        Set-CASMailbox -Identity $alias -ActiveSyncEnabled $ActiveSyncEnabled -owaenabled $false -DomainController DC01
-        $UserObject | Add-Member -MemberType NoteProperty -Name ActiveSyncEnabled -Value $ActiveSyncEnabled
-        $UserObject | Add-Member -MemberType NoteProperty -Name Enabled -Value $Enabled
-        Start-Sleep 10
-        if ( !$Enabled )
-            {
-            #Write-Host "Disabling User and Hiding From Address Book" -ForegroundColor Yellow
-            Write-Progress -Activity $Activity -CurrentOperation "Disabling User and Hiding From Address Book"
-            Set-Mailbox -Identity $alias -HiddenFromAddressListsEnabled $True -DomainController DC01
-            Set-ADUser -Identity $alias -Enabled $False -Server DC01
-            }
-        Set-ADUser $alias -Department $Department -Office $Office -Title $Title -Description $Title -Server dc01
+	New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$Enabled;'msExchUsageLocation'='US'} -Server DC01 -ErrorAction stop | Out-Null
         If ( $HomeDirectory )
             {
             Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
@@ -842,7 +838,12 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
         Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
         $groups = (Get-ADUser $Template -Properties memberof).memberof
-        $groups | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
+        $groups | Where-Object { $_.Name -ne 'E3 Basic License' } | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
+	if ( !$NoMailbox )
+	    {
+	    Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to 'E3 Basic License'"
+	    Get-ADGroup 'E3 Basic License' -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
+	    }
         #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
         Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
         $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
