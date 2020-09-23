@@ -694,6 +694,7 @@ Function New-LPSUser
     $UnencryptedPassword = New-RandomPassword
     $Password = ConvertTo-SecureString $UnencryptedPassword -AsPlainText -Force
     #Write-Host "Creating New User: $FirstN $MI $LastN" -ForegroundColor White
+    $HideInAddressBook=!$Enabled
     $Activity = "Creating New User: $FirstN $MI $LastN"
     Write-Progress -Activity $Activity -CurrentOperation $Activity 
     $UserObject = New-Object -TypeName PSObject
@@ -827,7 +828,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
     
     If ( !$Cancel )
         {
-	New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$Enabled} -Server DC01 -ErrorAction stop | Out-Null
+	New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
         If ( $HomeDirectory )
             {
             Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
