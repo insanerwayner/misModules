@@ -685,7 +685,7 @@ Function New-LPSUser
         [bool]$Enabled=$False, 
         [bool]$ActiveSyncEnabled=$False,
 	[bool]$NoMailbox=$False,
-	[string]$LicenseGroup='E3 Simple Licenses'
+	[string]$LicenseGroup='E3 Simple Licenses',
         [switch]$DoNotSendEmail
         )
     #User Variables
