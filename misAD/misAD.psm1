@@ -591,7 +591,7 @@ Function New-LPSUser
     Creates a new LifePath User
 
     .DESCRIPTION
-    Will set properties for LifePath users, creating the user with correct Group Memberships
+    Will create new user with correct Group Memberships based off of a template user and will trigger Exchange Online to create a mailbox for the user by default, unless otherwise specified.
 
     .NOTES   
     Name: New-LPSUser
@@ -630,8 +630,12 @@ Function New-LPSUser
     .PARAMETER ActiveSyncEnabled
     $True or $False Value to enable ActiveSync for Mailbox (Default False)
 
+    .PARAMETER LicenseGroup
+    Security Group indicating what group of Azure Licenses that shoudld be applied to the user. Default is 'E3 Simple Licenses'. 
+    If 'NoMailbox' is set to $true, this license will be ignored.  
+
     .PARAMETER NoMailbox
-    Do not create a mailbox for this user. Will not add the user to the 'E3 Basic License' Security Group, thus not prompting assigning a license which will prevent Exchange Online from creating a mailbox.
+    Do not create a mailbox for this user. Will not add the user to the selected E3 License Security Group, thus not prompting assigning a license which will prevent Exchange Online from creating a mailbox.
 
     .PARAMETER DoNotSendEmail 
     Switch to NOT send email template to yourself.
@@ -681,6 +685,7 @@ Function New-LPSUser
         [bool]$Enabled=$False, 
         [bool]$ActiveSyncEnabled=$False,
 	[bool]$NoMailbox=$False,
+	[string]$LicenseGroup='E3 Simple Licenses'
         [switch]$DoNotSendEmail
         )
     #User Variables
@@ -838,11 +843,11 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
         Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
         $groups = (Get-ADUser $Template -Properties memberof).memberof
-        $groups | Where-Object { $_.Name -ne 'E3 Basic License' } | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
+        $groups | Where-Object { $_.Name -ne $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
 	if ( !$NoMailbox )
 	    {
-	    Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to 'E3 Basic License'"
-	    Get-ADGroup 'E3 Basic License' -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
+	    Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
+	    Get-ADGroup $LicenseGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
 	    }
         #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
         Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
