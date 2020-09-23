@@ -827,7 +827,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
     
     If ( !$Cancel )
         {
-	New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$Enabled;'msExchUsageLocation'='US'} -Server DC01 -ErrorAction stop | Out-Null
+	New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$Enabled;'UsageLocation'='US'} -Server DC01 -ErrorAction stop | Out-Null
         If ( $HomeDirectory )
             {
             Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
