@@ -828,40 +828,48 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
     
     If ( !$Cancel )
         {
-	New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
-        If ( $HomeDirectory )
-            {
-            Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
-            Set-HomeDirectory -alias $alias -Department $Department -Office $Office
-            }
-        Else    
-            {
-            $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
-            Write-Progress -Activity $HDActivity -Completed
-            }
-        #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
-        $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
-        $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
-        Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
-        $groups = (Get-ADUser $Template -Properties memberof).memberof
-        $groups | Where-Object { $_.Name -ne $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
-	if ( !$NoMailbox )
+	try 
 	    {
-	    Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
-	    Get-ADGroup $LicenseGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
+	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
+	    If ( $HomeDirectory )
+		{
+		Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
+		Set-HomeDirectory -alias $alias -Department $Department -Office $Office
+		}
+	    Else    
+		{
+		$UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
+		Write-Progress -Activity $HDActivity -Completed
+		}
+	    #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
+	    $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
+	    $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
+	    Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
+	    $groups = (Get-ADUser $Template -Properties memberof).memberof
+	    $groups | Where-Object { $_.Name -ne $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
+	    if ( !$NoMailbox )
+		{
+		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
+		Get-ADGroup $LicenseGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
+		}
+	    #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
+	    Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
+	    $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
+	    Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server DC01
+	    Write-Progress -Activity $Activity -CurrentOperation "Setting ScriptPath based on $($Template)"
+	    $ScriptPath = (Get-ADUser $Template -Properties ScriptPath).ScriptPath
+	    Set-ADUser $alias -ScriptPath $ScriptPath -Server DC01
+	    If ( !$DoNotSendEmail )
+		{
+		Send-Email -DisplayName $UserObject.DisplayName -Alias $UserObject.alias
+		}
+	    Write-Progress -Activity $Activity -Completed
 	    }
-        #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
-        Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
-        $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
-        Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server DC01
-        Write-Progress -Activity $Activity -CurrentOperation "Setting ScriptPath based on $($Template)"
-        $ScriptPath = (Get-ADUser $Template -Properties ScriptPath).ScriptPath
-        Set-ADUser $alias -ScriptPath $ScriptPath -Server DC01
-        If ( !$DoNotSendEmail )
-            {
-            Send-Email -DisplayName $UserObject.DisplayName -Alias $UserObject.alias
-            }
-        Write-Progress -Activity $Activity -Completed
+	catch
+	    {
+	    Write-Progress -Activity $Activity -CurrentOperation "Failed: $_"
+	    $UserObject | Add-Member -MemberType NoteProperty -Name Error -Value "$_"
+	    }
         Return $UserObject
         }
     }
