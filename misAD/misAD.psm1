@@ -815,13 +815,13 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
             {
             $FullN = "$($FirstN) $($LastN)"
             $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
-            $UserObject | Add-Member -MemberType Noteproperty -Name Alias -Value "User Creation Cancelled. $($alias) already exists and no MI was provided." 
+            $UserObject | Add-Member -MemberType Noteproperty -Name Error -Value "User Creation Cancelled. $($alias) already exists and no MI was provided." 
             }
         else
             {
             $FullN = "$($FirstN) $($MI). $($LastN)"
             $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
-            $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value "User Creation Cancelled. $($alias) and $($aliaswithMI) already exists."
+            $UserObject | Add-Member -MemberType NoteProperty -Name Error -Value "User Creation Cancelled. $($alias) and $($aliaswithMI) already exists."
             }
         Return $UserObject
         }
@@ -863,14 +863,15 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 		{
 		Send-Email -DisplayName $UserObject.DisplayName -Alias $UserObject.alias
 		}
-	    Write-Progress -Activity $Activity -Completed
 	    }
 	catch
 	    {
 	    Write-Progress -Activity $Activity -CurrentOperation "Failed: $_"
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Error -Value "$_"
+	    sleep 5
 	    }
         Return $UserObject
+	Write-Progress -Activity $Activity -Completed
         }
     }
 
