@@ -668,7 +668,6 @@ Function New-LPSUser
 
     Description:
     Will create a new user and mailbox for "Bob S Cratchet." "jbraughton" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
-    HomeDirectory will not be created because "IDD Plano" Server (mrsvr1) is not compatible with script. Must Create HomeDirectory from Active Directory Users and Computers Console
     #>
     param ( 
         [string]$FirstN, 
