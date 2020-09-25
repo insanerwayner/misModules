@@ -627,9 +627,6 @@ Function New-LPSUser
     .PARAMETER Enabled
     $True or $False Value to set user to enabled state and make visible in Address Book (Default False)
 
-    .PARAMETER ActiveSyncEnabled
-    $True or $False Value to enable ActiveSync for Mailbox (Default False)
-
     .PARAMETER LicenseGroup
     Security Group indicating what group of Azure Licenses that shoudld be applied to the user. Default is 'E3 Simple Licenses'. 
     If 'NoMailbox' is set to $true, this license will be ignored.  
@@ -644,14 +641,14 @@ Function New-LPSUser
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren 
 
     Description:
-    Will create a new user and mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled, hidden from Address Book, and ActiveSync Disabled.
+    Will create a new user and mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
     An email template will be sent to you for sending on to staff.
 
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -NoMailbox $True
 
     Description:
-    Will create a new user without a mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled, hidden from Address Book, and ActiveSync Disabled.
+    Will create a new user without a mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
     An email template will be sent to you for sending on to staff.
 
     .EXAMPLE
@@ -661,16 +658,16 @@ Function New-LPSUser
     Specify to not send an email template to you.
 
     .EXAMPLE
-    New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -HomeDirectory $False -Enabled $True -ActiveSyncEnabled $True
+    New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -HomeDirectory $False -Enabled $True 
 
     Description:
-    Will create a new user and mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be enabled, visible in Address Book, and ActiveSync Enabled.
+    Will create a new user and mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be enabled and visible in Address Book.
 
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "IDD Plano" -Department IDD -Template jbraughton
 
     Description:
-    Will create a new user and mailbox for "Bob S Cratchet." "jbraughton" will be used as a template for Group Memberships. User will be disabled, hidden from Address Book, and ActiveSync Disabled.
+    Will create a new user and mailbox for "Bob S Cratchet." "jbraughton" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
     HomeDirectory will not be created because "IDD Plano" Server (mrsvr1) is not compatible with script. Must Create HomeDirectory from Active Directory Users and Computers Console
     #>
     param ( 
@@ -683,7 +680,6 @@ Function New-LPSUser
         [string]$Template, 
         [bool]$HomeDirectory=$True, 
         [bool]$Enabled=$False, 
-        [bool]$ActiveSyncEnabled=$False,
 	[bool]$NoMailbox=$False,
 	[string]$LicenseGroup='E3 Simple Licenses',
         [switch]$DoNotSendEmail
