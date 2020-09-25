@@ -629,10 +629,10 @@ Function New-LPSUser
 
     .PARAMETER LicenseGroup
     Security Group indicating what group of Azure Licenses that shoudld be applied to the user. Default is 'E3 Simple Licenses'. 
-    If 'NoMailbox' is set to $true, this license will be ignored.  
+    If 'Mailbox' is set to $False, this license will be ignored.  
 
-    .PARAMETER NoMailbox
-    Do not create a mailbox for this user. Will not add the user to the selected E3 License Security Group, thus not prompting assigning a license which will prevent Exchange Online from creating a mailbox.
+    .PARAMETER Mailbox
+    True or False to create a mailbox for this user. Will add the user to the selected E3 License Security Group, thus prompting assigning a license which will cause Exchange Online to create a mailbox. (Default False)
 
     .PARAMETER DoNotSendEmail 
     Switch to NOT send email template to yourself.
@@ -645,7 +645,7 @@ Function New-LPSUser
     An email template will be sent to you for sending on to staff.
 
     .EXAMPLE
-    New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -NoMailbox $True
+    New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -Mailbox $False
 
     Description:
     Will create a new user without a mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
@@ -680,7 +680,7 @@ Function New-LPSUser
         [string]$Template, 
         [bool]$HomeDirectory=$True, 
         [bool]$Enabled=$False, 
-	[bool]$NoMailbox=$False,
+	[bool]$Mailbox=$True,
 	[string]$LicenseGroup='E3 Simple Licenses',
         [switch]$DoNotSendEmail
         )
@@ -843,7 +843,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 	    Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
 	    $groups = (Get-ADUser $Template -Properties memberof).memberof
 	    $groups | Where-Object { $_.Name -ne $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
-	    if ( !$NoMailbox )
+	    if ( $Mailbox )
 		{
 		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
 		Get-ADGroup $LicenseGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
