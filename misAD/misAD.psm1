@@ -933,7 +933,8 @@ Function New-LPSUsersFromCSV
         $UserObjects.Add($UserObject) | Out-Null
         $splat = $null
         }
-    $UserObjects
+    Return $UserObjects
+    Get-NextADSync
     }
 
 Function Import-AnasaziIDs
@@ -1027,5 +1028,5 @@ Function Get-NextADSync
     )
     $Results = Invoke-Command -ComputerName $Server -Scriptblock { Get-ADSyncScheduler }
     $NextSyncLocalTime = (Get-Date $($Results.NextSyncCycleStartTimeInUTC)).ToLocalTime()
-    echo "Next AD Sync Cycle Start Time: $($NextSyncLocalTime)"
+    Write-Host "Next AD Sync Cycle Start Time: $($NextSyncLocalTime)" -ForegroundColor Yellow
     }
