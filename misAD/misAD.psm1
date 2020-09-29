@@ -1019,3 +1019,13 @@ Function Add-PhoneUser
         Set-CASMailbox $Username -ActiveSyncEnabled $True 
         }
     }
+
+Function Get-NextADSync
+    {
+    param(
+    $Server="migrate365"
+    )
+    $Results = Invoke-Command -ComputerName $Server -Scriptblock { Get-ADSyncScheduler }
+    $NextSyncLocalTime = (Get-Date $($Results.NextSyncCycleStartTimeInUTC)).ToLocalTime()
+    echo "Next AD Sync Cycle Start Time: $($NextSyncLocalTime)"
+    }
