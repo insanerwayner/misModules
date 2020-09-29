@@ -915,12 +915,12 @@ Function New-LPSUsersFromCSV
     )
     $Users = Import-CSV $Path
     $UserObjects = New-Object System.Collections.ArrayList
-    $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName
-    $UserObject | Add-Member -MemberType NoteProperty -Name Alias
-    $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory
-    $UserObject | Add-Member -MemberType NoteProperty -Name Template
-    $UserObject | Add-Member -MemberType NoteProperty -Name Password
-    $UserObject | Add-Member -MemberType NoteProperty -Name Error
+    $UserObjects | Add-Member -MemberType NoteProperty -Name DisplayName
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Alias
+    $UserObjects | Add-Member -MemberType NoteProperty -Name HomeDirectory
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Template
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Password
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Error
     foreach ( $User in $Users)
         {
         $splat = @{}
