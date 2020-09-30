@@ -749,7 +749,7 @@ Function New-LPSUser
 			$Count++
 			}
 		    }
-		if ( !NoPerms )
+		if ( !$NoPerms )
 		    {
 		    New-SMBShare -Name $alias -Path $LocalPath -FullAccess Everyone -CimSession $FileServer	| Out-Null
 		    #Write-Host "Setting N Drive to $SharePath" -ForegroundColor Yellow
