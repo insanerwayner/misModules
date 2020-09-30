@@ -634,8 +634,8 @@ Function New-LPSUser
     .PARAMETER Mailbox
     True or False to create a mailbox for this user. Will add the user to the selected E3 License Security Group, thus prompting assigning a license which will cause Exchange Online to create a mailbox. (Default True)
 
-    .PARAMETER DoNotSendEmail 
-    Switch to NOT send email template to yourself.
+    .PARAMETER SendEmail 
+    True or False to send email template to yourself. ( Default True )
     
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren 
@@ -681,7 +681,7 @@ Function New-LPSUser
         [bool]$Enabled=$False, 
 	[bool]$Mailbox=$True,
 	[string]$LicenseGroup='E3 Simple Licenses',
-        [switch]$DoNotSendEmail
+        [bool]$SendEmail=$True
         )
     #User Variables
     $alias = $FirstN.toLower().substring(0,1)+$LastN.tolower().replace("-","").replace(" ","")
@@ -879,7 +879,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 		Write-Progress -Activity $HDActivity -Completed
 		}
 
-	    If ( !$DoNotSendEmail )
+	    If ( $SendEmail )
 		{
 		Send-Email -DisplayName $UserObject.DisplayName -Alias $UserObject.alias
 		}
@@ -912,8 +912,8 @@ Function New-LPSUsersFromCSV
     .PARAMETER Path
     Either the Path to the CSV File you are pulling from or if you are in the current directory just the name of the file. The CSV requires two columns: "SAMAccountName" and "EmployeeID".
 
-    .PARAMETER DoNotSendEmail
-    Specifies to not send email template.
+    .PARAMETER SendEmail
+    True or Fasle to specifies to send email template. ( Default True )
 
     .EXAMPLE
     New-LPSUsersFromCSV -Path "New Users.csv"
@@ -936,7 +936,7 @@ Function New-LPSUsersFromCSV
     [cmdletBinding()]
     Param(
         [string]$Path,
-        [switch]$DoNotSendEmail
+        [switch]$SendEmail
     )
     $Users = Import-CSV $Path
     $UserObjects = New-Object System.Collections.ArrayList
@@ -953,9 +953,9 @@ Function New-LPSUsersFromCSV
 	    {
 	    $User.Mailbox = [bool]::Parse($User.Mailbox)
 	    }
-        if ( !$DoNotSendEmail )
+        if ( !$SendEmail )
             {
-            $User | Add-Member -Type NoteProperty -Name SendEmail -Value $True
+            $User | Add-Member -Type NoteProperty -Name SendEmail -Value $False
             }
         $User.psobject.properties | ForEach-Object { $splat[$_.Name] = $_.Value }
         $UserObject = New-LPSUser @splat
