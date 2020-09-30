@@ -680,6 +680,7 @@ Function New-LPSUser
         [string]$Title, 
 	[Parameter(Mandatory)]
         [string]$Office, 
+	[Parameter(Mandatory)]
 	[ValidateSet("Admin","BH","ECI","IDD")]
         [string]$Department, 
 	[Parameter(Mandatory)]
