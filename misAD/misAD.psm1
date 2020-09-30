@@ -632,7 +632,7 @@ Function New-LPSUser
     If 'Mailbox' is set to $False, this license will be ignored.  
 
     .PARAMETER Mailbox
-    True or False to create a mailbox for this user. Will add the user to the selected E3 License Security Group, thus prompting assigning a license which will cause Exchange Online to create a mailbox. (Default False)
+    True or False to create a mailbox for this user. Will add the user to the selected E3 License Security Group, thus prompting assigning a license which will cause Exchange Online to create a mailbox. (Default True)
 
     .PARAMETER DoNotSendEmail 
     Switch to NOT send email template to yourself.
