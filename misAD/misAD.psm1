@@ -924,6 +924,10 @@ Function New-LPSUsersFromCSV
     foreach ( $User in $Users)
         {
         $splat = @{}
+	if ( $User.Mailbox )
+	    {
+	    $User.Mailbox = [bool]$User.Mailbox
+	    }
         if ( !$DoNotSendEmail )
             {
             $User | Add-Member -Type NoteProperty -Name SendEmail -Value $True
