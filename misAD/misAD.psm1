@@ -936,7 +936,7 @@ Function New-LPSUsersFromCSV
     [cmdletBinding()]
     Param(
         [string]$Path,
-        [switch]$SendEmail
+        [bool]$SendEmail
     )
     $Users = Import-CSV $Path
     $UserObjects = New-Object System.Collections.ArrayList
