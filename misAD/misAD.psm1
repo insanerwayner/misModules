@@ -953,9 +953,9 @@ Function New-LPSUsersFromCSV
 	    {
 	    $User.Mailbox = [bool]::Parse($User.Mailbox)
 	    }
-        if ( !$DoNotSendEmail )
+        if ( $DoNotSendEmail )
             {
-            $User | Add-Member -Type NoteProperty -Name SendEmail -Value $True
+            $User | Add-Member -Type NoteProperty -Name SendEmail -Value $False
             }
         $User.psobject.properties | ForEach-Object { $splat[$_.Name] = $_.Value }
         $UserObject = New-LPSUser @splat
