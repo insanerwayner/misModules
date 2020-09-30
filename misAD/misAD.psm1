@@ -613,7 +613,7 @@ Function New-LPSUser
     User's Office
 
     .PARAMETER Department
-    User's Division
+    User's Division. Can only choose between "Admin", "BH", "ECI", or "IDD"
 
     .PARAMETER Template
     Username of the Template User you wish to copy Group Memberships from
@@ -670,12 +670,19 @@ Function New-LPSUser
     Will create a new user and mailbox for "Bob S Cratchet." "jbraughton" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
     #>
     param ( 
+	[Parameter(Mandatory)]
         [string]$FirstN, 
+	[Parameter(Mandatory)]
         [string]$MI,
+	[Parameter(Mandatory)]
         [string]$LastN, 
+	[Parameter(Mandatory)]
         [string]$Title, 
+	[Parameter(Mandatory)]
         [string]$Office, 
+	[ValidateSet("Admin","BH","ECI","IDD")]
         [string]$Department, 
+	[Parameter(Mandatory)]
         [string]$Template, 
         [bool]$HomeDirectory=$True, 
         [bool]$Enabled=$False, 
@@ -935,6 +942,7 @@ Function New-LPSUsersFromCSV
     #>
     [cmdletBinding()]
     Param(
+	[Parameter(Mandatory)]
         [string]$Path,
         [bool]$SendEmail=$True
     )
