@@ -926,7 +926,7 @@ Function New-LPSUsersFromCSV
         $splat = @{}
 	if ( $User.Mailbox )
 	    {
-	    $User.Mailbox = [bool]$User.Mailbox
+	    $User.Mailbox = [bool]::Parse($User.Mailbox)
 	    }
         if ( !$DoNotSendEmail )
             {
