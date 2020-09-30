@@ -734,13 +734,37 @@ Function New-LPSUser
                 New-Item $NewFolder -Type Directory | Out-Null
                 $ScriptBlock = { param($LocalPath,$alias) Add-NTFSAccess -Path $LocalPath -Account "CCMHMR\$($alias)" -AccessRights Modify }
                 Write-Progress -Activity $HDActivity -CurrentOperation "Setting File Permissions"
-                Invoke-Command $ScriptBlock -ArgumentList $LocalPath, $alias -ComputerName $FileServer
-                New-SMBShare -Name $alias -Path $LocalPath -FullAccess Everyone -CimSession $FileServer	| Out-Null
-                #Write-Host "Setting N Drive to $SharePath" -ForegroundColor Yellow
-                Write-Progress -Activity $HDActivity -CurrentOperation "Setting N Drive to $SharePath"	
-                Set-AdUser -Identity $alias -HomeDirectory $SharePath -HomeDrive "N:" -Server DC01
-                Write-Progress -Activity $HDActivity -Completed
-                }
+		sleep 5
+                Invoke-Command $ScriptBlock -ArgumentList $LocalPath, $alias -ComputerName $FileServer -ErrorVariable NoPerms
+		# If Add Permissions Failed, wait 5 seconds and try again 5 times.
+		if ( $NoPerms )
+		    {
+		    $Count = 0
+		    while ( $NoPerms -and $Count -lt 5 )
+			{
+			$NoPerms = $Null
+			Write-Host "Cannot add HomeDirectory Permission for User. Trying again in 5 Seconds." -ForegroundColor Yellow
+			sleep 5
+			Invoke-Command $ScriptBlock -ArgumentList $LocalPath, $alias -ComputerName $FileServer -ErrorVariable NoPerms
+			$Count++
+			}
+		    }
+		if ( !NoPerms )
+		    {
+		    New-SMBShare -Name $alias -Path $LocalPath -FullAccess Everyone -CimSession $FileServer	| Out-Null
+		    #Write-Host "Setting N Drive to $SharePath" -ForegroundColor Yellow
+		    Write-Progress -Activity $HDActivity -CurrentOperation "Setting N Drive to $SharePath"	
+		    Set-AdUser -Identity $alias -HomeDirectory $SharePath -HomeDrive "N:" -Server DC01
+		    Write-Progress -Activity $HDActivity -Completed
+		    }
+		else
+		    {
+		    $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
+		    $UserObject | Add-Member -MemberType NoteProperty -Name Error -Value $NoPerms
+		    #Write-Host "No HomeDirectory for $alias" -ForegroundColor Yellow
+		    Write-Progress -Activity $HDActivity -Completed
+		    }   
+		}
             else
                 {
                 $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
