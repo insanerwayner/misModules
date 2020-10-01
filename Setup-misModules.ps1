@@ -23,11 +23,11 @@ if ( (Get-Host).Version.Major -ge 7 )
 	Write-Host "Setting Up $Module" -ForegroundColor Yellow
 	#Import-Module $Module
 	}
-    Write-Host "Exit now and Re-open Powershell." -ForegroundColor Yellow
+    Write-Host "Exit now and Re-open Powershell 7." -ForegroundColor Yellow
     }
 else
     {
     Write-Host "Powershell 7 not detected. Installing."
     iex "& { $(irm https://aka.ms/install-powershell.ps1) } -UseMSI"
-    Write-Host "Launch Powershell 7 as Administrator and rerun this setup file."
+    Write-Host "Launch Powershell 7 as Administrator and rerun this setup file." -ForegroundColor Yellow
     }
