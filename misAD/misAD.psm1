@@ -672,7 +672,6 @@ Function New-LPSUser
     param ( 
 	[Parameter(Mandatory)]
         [string]$FirstN, 
-	[Parameter(Mandatory)]
         [string]$MI,
 	[Parameter(Mandatory)]
         [string]$LastN, 
@@ -698,7 +697,7 @@ Function New-LPSUser
     $Password = ConvertTo-SecureString $UnencryptedPassword -AsPlainText -Force
     #Write-Host "Creating New User: $FirstN $MI $LastN" -ForegroundColor White
     $HideInAddressBook=!$Enabled
-    $Activity = "Creating New User: $FirstN $MI $LastN"
+    $Activity = "Creating New User: $FirstN $MI $LastN" -Replace "  ", " "
     Write-Progress -Activity $Activity -CurrentOperation $Activity 
     $UserObject = New-Object -TypeName PSObject
     Function Set-HomeDirectory($alias, $Department, $Office)
