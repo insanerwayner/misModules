@@ -929,7 +929,7 @@ Function New-LPSUsersFromCSV
     In this example you are already in the current directory that the CSV File resides. It will pull in the information and create each user specified
 
     .EXAMPLE
-    New-LPSUsersFromCSV -Path "New Users.csv" -DoNotSendEmail
+    New-LPSUsersFromCSV -Path "New Users.csv" -SendEmail:$False
 
     Description:
     In this example you are telling the script to not send you an email template for each user.
