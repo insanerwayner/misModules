@@ -971,7 +971,7 @@ Function New-LPSUsersFromCSV
         $UserObjects.Add($UserObject) | Out-Null
         $splat = $null
         }
-    Return $UserObjects
+    $UserObjects
     Get-NextADSync
     }
 
