@@ -672,7 +672,6 @@ Function New-LPSUser
     param ( 
 	[Parameter(Mandatory)]
         [string]$FirstN, 
-	[Parameter(Mandatory)]
         [string]$MI,
 	[Parameter(Mandatory)]
         [string]$LastN, 
@@ -693,12 +692,15 @@ Function New-LPSUser
         )
     #User Variables
     $alias = $FirstN.toLower().substring(0,1)+$LastN.tolower().replace("-","").replace(" ","")
-    $aliaswithMI = $FirstN.toLower().substring(0,1)+$MI.tolower()+$LastN.tolower().replace("-","").replace(" ","")
+    if ( $MI )
+	{
+	$aliaswithMI = $FirstN.toLower().substring(0,1)+$MI.tolower()+$LastN.tolower().replace("-","").replace(" ","")
+	}
     $UnencryptedPassword = New-RandomPassword
     $Password = ConvertTo-SecureString $UnencryptedPassword -AsPlainText -Force
     #Write-Host "Creating New User: $FirstN $MI $LastN" -ForegroundColor White
     $HideInAddressBook=!$Enabled
-    $Activity = "Creating New User: $FirstN $MI $LastN"
+    $Activity = "Creating New User: $FirstN $MI $LastN" -Replace "  ", " " 
     Write-Progress -Activity $Activity -CurrentOperation $Activity 
     $UserObject = New-Object -TypeName PSObject
     Function Set-HomeDirectory($alias, $Department, $Office)
@@ -820,7 +822,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
         $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value $alias
         }
-    elseif ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$aliaswithMI)" -Server DC01 ) -eq $null )
+    elseif ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$aliaswithMI)" -Server DC01 ) -eq $null -and $aliaswithMI )
         {
         #Write-Host "$alias already exists."
         Write-Progress -Activity $Activity -CurrentOperation "$alias already exists."
@@ -838,7 +840,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         Write-Progress -Activity $Activity -Completed
         #Write-Host "Both $alias and $aliaswithMI taken. Canceled." -ForegroundColor Red
         $Cancel = $True
-        If ( $alias -eq $aliaswithMI )
+        If ( !$aliaswithMI )
             {
             $FullN = "$($FirstN) $($LastN)"
             $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
