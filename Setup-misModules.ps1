@@ -3,8 +3,16 @@ if ( (Get-Host).Version.Major -ge 7 )
     Write-Host "Checking for Installed Modules" -ForegroundColor Yellow
     if ( !(Get-Module ExchangeOnlineManagement) )
 	{
-	Write-Host "Installing ExchangeOnlineManagement Module" -ForegroundColor Yellow
-	Install-Module ExchangeOnlineManagement -Confirm:$False
+	try
+	    {
+	    Write-Host "Installing ExchangeOnlineManagement Module" -ForegroundColor Yellow
+	    Install-Module ExchangeOnlineManagement -Confirm:$False
+	    }
+	catch
+	    {
+	    Write-Error "Could not install ExchangeOnlineManagement"
+	    exit
+	    }
 	}
     $InstalledModules = Get-Module mis* -ListAvailable
     if ( $InstalledModules )
