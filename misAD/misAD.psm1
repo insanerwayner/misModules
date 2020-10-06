@@ -856,7 +856,8 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         {
 	try 
 	    {
-	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
+	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
+	    Set-ADuser -Identity $alias -ChangePasswordAtLogon $True -Server DC01
 	    #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
