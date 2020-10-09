@@ -96,8 +96,9 @@ Function Find-ADComputer
     Will show you the last boot time for your computer
     #>
     $computername = Find-ADComputer -Asset $Computer
-    Get-CIMInstance win32_operatingsystem -computername $computername.name | select @{L='Last Boot';E={$_.ConverttoDateTime($_.lastbootuptime)}}
+    Get-CIMInstance win32_operatingsystem -computername $computername.name | select LastBootUpTime
     }
+
 Function Find-ADuser
     {
     <#
