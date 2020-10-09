@@ -41,7 +41,7 @@ else
     {
     $Success = @()
     $Fail = @()
-    $Printers = get-wmiobject -class win32_printer -computername $computername 
+    $Printers = Get-CIMInstance win32_printer -computername $computername 
     If ( $Printers )
         {
         Foreach ( $Printer in $Printers )
