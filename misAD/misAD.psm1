@@ -816,7 +816,6 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         Write-Progress -Activity $Activity -CurrentOperation "Creating $alias"
         $FullN = "$FirstN $LastN"
         $principal = $alias+"@lifepathsystems.org"
-        $email = $alias+"@lifepathsystems.org"
         $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
         $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value $alias
         }
@@ -828,8 +827,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         #Write-Host "Creating $alias" -ForegroundColor Yellow
         Write-Progress -Activity $Activity -CurrentOperation "Creating $alias"
         $FullN = "$($FirstN) $($MI). $($LastN)"
-        $principal = $alias+"@ccmhmr.local"
-        $email = $alias+"@lifepathsystems.org"
+        $principal = $alias+"@lifepathsystems.org"
         $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
         $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value $alias       
         }
