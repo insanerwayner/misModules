@@ -868,7 +868,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
 		Get-ADGroup $LicenseGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
 		Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
-		Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$aias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server DC02 -Server DC01
+		Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$aias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server DC01
 		}
 	    #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
 	    Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
