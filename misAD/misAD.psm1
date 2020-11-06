@@ -885,7 +885,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 	    Else    
 		{
 		$UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
-		Write-Progress -Activity $HDActivity -Completed
+		Write-Progress -Activity $Activity -Completed
 		}
 
 	    If ( $SendEmail )
