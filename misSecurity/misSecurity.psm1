@@ -228,10 +228,10 @@ Function New-RandomPassword
 	$Specials=1
         )
 
-    if ( ($( $Capitals + $Numbers + $Specials) -gt $Length ) -or ( $( $Length + $Capitals + $Numbers + $Specials ) -eq 0 ) )
+    if ( ($( $Capitals + $Numbers + $Specials) -gt $Length ) -or ( $( $Length + $Capitals + $Numbers + $Specials ) -le 0 ) )
 	{
 	Write-Error "Length and other character values do not add up."
-	exit
+	Return
 	}
     else
 	{
