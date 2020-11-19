@@ -213,8 +213,31 @@ Function New-RandomPassword
     #>
     param(
         [switch]
-        $CallWords
+        $CallWords,
+	[ValidateRange("NonNegative")]
+	[int]
+	$Length=10,
+	[ValidateRange("NonNegative")]
+	[int]
+	$Capitals=1,
+	[ValidateRange("NonNegative")]
+	[int]
+	$Numbers=1,
+	[ValidateRange("NonNegative")]
+	[int]
+	$Specials=1
         )
+
+    if ( ($( $Capitals + $Numbers + $Specials) -gt $Length ) -or ( $( $Length + $Capitals + $Numbers + $Specials ) -eq 0 ) )
+	{
+	Write-Error "Length and other character values do not add up."
+	exit
+	}
+    else
+	{
+	$Length = $Length - $Capitals - $Numbers - $Specials
+	}
+
     Function Get-RandomCharacters($length, $characters)
         { 
         $random = 1..$length | ForEach-Object { Get-Random -Maximum $characters.length } 
@@ -231,10 +254,22 @@ Function New-RandomPassword
         }
 
     # Get Random Strings
-    $password = Get-RandomCharacters -length 5 -characters 'abcdefghikmnprstuvwxyz'
-    $password += Get-RandomCharacters -length 1 -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
-    $password += Get-RandomCharacters -length 1 -characters '2345678'
-    $password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
+    if ( $Length -gt 0 )
+	{
+	$password = Get-RandomCharacters -length $Length -characters 'abcdefghikmnprstuvwxyz'
+	}
+    if ( $Capitals -gt 0 )
+	{
+	$password += Get-RandomCharacters -length $Capitals -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
+	}
+    if ( $Numbers -gt 0 )
+	{
+	$password += Get-RandomCharacters -length 1 -characters '2345678'
+	}
+    if ( $Specials -gt 0 )
+	{
+	$password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
+	}
     $password = Scramble-String -inputstring $password
     If ( $CallWords )
         {
