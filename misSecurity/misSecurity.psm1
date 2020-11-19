@@ -264,11 +264,11 @@ Function New-RandomPassword
 	}
     if ( $Numbers -gt 0 )
 	{
-	$password += Get-RandomCharacters -length 1 -characters '2345678'
+	$password += Get-RandomCharacters -length $Numbers -characters '2345678'
 	}
     if ( $Specials -gt 0 )
 	{
-	$password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
+	$password += Get-RandomCharacters -length $Specials -characters '!@#$%&+?'
 	}
     $password = Scramble-String -inputstring $password
     If ( $CallWords )
