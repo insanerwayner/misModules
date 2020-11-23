@@ -194,11 +194,35 @@ Function New-RandomPassword
     .PARAMETER CallWords
     Switch to display call words to read each character to user.
 
+    .PARAMETER Lower
+    Number of lowercase characters to use in password. Default is 7.
+
+    .PARAMETER Upper
+    Number of uppercase characters to use in password. Default is 1.
+
+    .PARAMETER Number
+    Number of numbers characters to use in password. Default is 1.
+
+    .PARAMETER Special
+    Number of special characters to use in password. Default is 1. 
+
     .EXAMPLE
     New-RandomPassword
 
     Description:
-    Generates a randomy password string.
+    Generates a randomy password string using 7 lowercase characters, 1 uppercase characters, 1 number, and one special character.
+
+    .EXAMPLE
+    New-RandomPassword -Lower 10
+
+    Description:
+    Generates a randomy password string using 10 lowercase characters, 1 uppercase characters, 1 number, and one special character.
+
+    .EXAMPLE
+    New-RandomPassword -Lower 5 -Upper 4 -Number 1 -Special 0
+
+    Description:
+    Generates a randomy password string using 5 lowercase characters, 4 uppercase characters, 1 number, and no special characters.
 
     .EXAMPLE
     New-RandomPassword -CallWords
@@ -216,26 +240,17 @@ Function New-RandomPassword
         $CallWords,
 	[ValidateRange("NonNegative")]
 	[int]
-	$Length=10,
+	$Lower=7,
 	[ValidateRange("NonNegative")]
 	[int]
-	$Capitals=1,
+	$Upper=1,
 	[ValidateRange("NonNegative")]
 	[int]
-	$Numbers=1,
+	$Number=1,
 	[ValidateRange("NonNegative")]
 	[int]
-	$Specials=1
+	$Special=1
         )
-
-    if ( ($( $Capitals + $Numbers + $Specials) -gt $Length ) -or ( $( $Length + $Capitals + $Numbers + $Specials ) -le 0 ) )
-	{
-	Write-Error "Length and other character values do not add up."
-	}
-    else
-	{
-	$Length = $Length - $Capitals - $Numbers - $Specials
-	}
 
     Function Get-RandomCharacters($length, $characters)
         { 
@@ -253,32 +268,35 @@ Function New-RandomPassword
         }
 
     # Get Random Strings
-    if ( $Length -gt 0 )
+    if ( $Lower -gt 0 )
 	{
-	$password = Get-RandomCharacters -length $Length -characters 'abcdefghikmnprstuvwxyz'
+	$password = Get-RandomCharacters -length $Lower -characters 'abcdefghikmnprstuvwxyz'
 	}
-    if ( $Capitals -gt 0 )
+    if ( $Upper -gt 0 )
 	{
-	$password += Get-RandomCharacters -length $Capitals -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
+	$password += Get-RandomCharacters -length $Upper -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
 	}
-    if ( $Numbers -gt 0 )
+    if ( $Number -gt 0 )
 	{
-	$password += Get-RandomCharacters -length $Numbers -characters '2345678'
+	$password += Get-RandomCharacters -length $Number -characters '2345678'
 	}
-    if ( $Specials -gt 0 )
+    if ( $Special -gt 0 )
 	{
-	$password += Get-RandomCharacters -length $Specials -characters '!@#$%&+?'
+	$password += Get-RandomCharacters -length $Special -characters '!@#$%&+?'
 	}
-    $password = Scramble-String -inputstring $password
-    If ( $CallWords )
-        {
-        Write-Host $Password
-        Write-Host "$(Get-CallWords $password)"
-        }
-    Else
-        {
-        return $password
-        }
+    if ( $password )
+	{
+	$password = Scramble-String -inputstring $password
+	If ( $CallWords )
+	    {
+	    Write-Host $Password
+	    Write-Host "$(Get-CallWords $password)"
+	    }
+	Else
+	    {
+	    return $password
+	    }
+	}
     }
 
 Function Get-Callwords
