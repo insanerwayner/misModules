@@ -321,7 +321,7 @@ Function Reset-Password
     {
     <#
     .Synopsis
-    Will reset a users password to "mouse99!"
+    Will reset a users password.
 
     .DESCRIPTION
     Will present a menu to select the user that matches your string filter and then reset the password of that user.
@@ -347,7 +347,7 @@ Function Reset-Password
     Reset-Password test
 
     Description:
-    Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select
+    Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select.
 
     .EXAMPLE
     Reset-Password test -DoNotChangePasswordAtLogon
