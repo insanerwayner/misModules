@@ -238,16 +238,16 @@ Function New-RandomPassword
     param(
         [switch]
         $CallWords,
-	[ValidateRange("NonNegative")]
+	[ValidateRange(0,255)]
 	[int]
 	$Lower=7,
-	[ValidateRange("NonNegative")]
+	[ValidateRange(0,255)]
 	[int]
 	$Upper=1,
-	[ValidateRange("NonNegative")]
+	[ValidateRange(0,255)]
 	[int]
 	$Number=1,
-	[ValidateRange("NonNegative")]
+	[ValidateRange(0,255)]
 	[int]
 	$Special=1
         )
