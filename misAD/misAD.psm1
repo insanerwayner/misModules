@@ -862,7 +862,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
 	    Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
 	    $groups = (Get-ADUser $Template -Properties memberof).memberof
-	    $groups | Where-Object { $_.Name -ne $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
+	    $groups | Where-Object { $_ -notmatch $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
 	    if ( $Mailbox )
 		{
 		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
