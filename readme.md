@@ -8,23 +8,6 @@ These PowerShell modules were created to help MIS with repetitive tasks that we 
 
 Run the **Setup-misModules.ps1** Script with **Elevated Administrator Privileges**. This will copy the modules to your computer then walk you through storing your _encrypted_ passwords for the scripts.  
 
-
-**Note:**
-
-When entering credentials for exchange don't forget the **domain\username**
-
-### Setup misExchange to Load on PowerShell Startup
-
-In order to get your **Remote PowerShell Exchange Session** activated you have to run the command  
-`Import-Module misExchange -DisableNameChecking`.  
-
-You can add this to your PowerShell Profile (after you have run **Setup-misModules.ps1**) by:
-
-- Open your Powershell Profile: `notepad $profile`
-- Add the line: `Import-Module misExchange -DisableNameChecking`
-- Save the File
-- Close and Reopen PowerShell
-
 ## Commands
 
 To get a list of commands for each module you can use:
@@ -139,10 +122,6 @@ Manages Users' Windows and Citrix Sessions
 ### misEncryption
 
 Used to retrieve and add computer encryption passwords quickly.
-
-### misExchange
-
-Connects a **Remote PowerShell Session** to Exchange so you can run Exchange commands from your computer.
 
 ### misSecurity
 
