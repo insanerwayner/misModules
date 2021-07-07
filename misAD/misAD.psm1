@@ -1018,48 +1018,6 @@ Function Import-AnasaziIDs
     $List | Select Name, EmployeeID
     }
 
-Function Add-PhoneUser
-    {
-    <#
-    .Synopsis
-    Sets up an Active Directory user with settings for use with company phones.
-
-    .DESCRIPTION
-    Adds the user to the "All Hours Access" Security Group, Sets their logon hours to all hours, then enables ActiveSync on their mailbox.
-
-    .NOTES   
-    Name: Add-PhoneUser
-    Author: Wayne Reeves
-    Version: 10.11.19
-
-    .PARAMETER Username
-    The username of the employee you are setting up for company phone use.
-
-    .EXAMPLE
-    Add-PhoneUser -Username zztest
-
-    Description:
-    In this example you are setting up zztest for company phone use.
-
-    .EXAMPLE
-    Add-PhoneUser zztest
-
-    Description:
-    This is the same as the example above, but you are not specifying the "Username" property since it is implied.
-    #>
-    param(
-        [parameter(Mandatory=$true, Position=1, ValueFromPipeline=$true)]
-        [string]$Username
-        )
-    if ( Get-ADUser $Username )
-        {
-        [byte[]]$LogonHours = @(255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255)
-        Add-ADGroupMember -Identity "All Hours Access" -Members $Username 
-        Set-ADUser $Username -Replace @{ logonhours = $LogonHours } 
-        Set-CASMailbox $Username -ActiveSyncEnabled $True 
-        }
-    }
-
 Function Get-NextADSync
     {
     param(
