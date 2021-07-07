@@ -1,4 +1,6 @@
-misSecurity/Security/
-PSWindowsUpdate/
-cowsay/
-ReadmeFirst.url
+*
+!mis*/*
+!readme.md
+!LICENSE
+!Setup-misModules.ps1
+!.gitignore

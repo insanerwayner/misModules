@@ -7,7 +7,7 @@ Function Get-CurrentUser($ComputerName='localhost')
 Queries a computer to find current logged on user
 
 .DESCRIPTION
-This script uses WMI to query the win32_operatingsystem class
+This script uses CIMInstance to query the win32_operatingsystem class for the logged on user
 
 .NOTES   
 Name: Get-CurrentUser
@@ -41,7 +41,7 @@ if ( Test-Connection $ComputerName -Count 1 -Quiet )
     {
     Try
         {
-        $username = (Get-WmiObject win32_computersystem -ComputerName $ComputerName -ErrorAction Stop).username.replace("CCMHMR\","") 
+        $username = (Get-CIMInstance win32_computersystem -ComputerName $ComputerName -ErrorAction Stop).username.replace("CCMHMR\","") 
         Get-ADUser $username
         }
     Catch

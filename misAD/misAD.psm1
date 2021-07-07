@@ -96,8 +96,9 @@ Function Find-ADComputer
     Will show you the last boot time for your computer
     #>
     $computername = Find-ADComputer -Asset $Computer
-    Get-WmiObject win32_operatingsystem -computername $computername.name | select @{L='Last Boot';E={$_.ConverttoDateTime($_.lastbootuptime)}}
+    Get-CIMInstance win32_operatingsystem -computername $computername.name | select LastBootUpTime
     }
+
 Function Find-ADuser
     {
     <#
@@ -320,7 +321,7 @@ Function Reset-Password
     {
     <#
     .Synopsis
-    Will reset a users password to "mouse99!"
+    Will reset a users password.
 
     .DESCRIPTION
     Will present a menu to select the user that matches your string filter and then reset the password of that user.
@@ -346,7 +347,7 @@ Function Reset-Password
     Reset-Password test
 
     Description:
-    Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select
+    Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select.
 
     .EXAMPLE
     Reset-Password test -DoNotChangePasswordAtLogon
@@ -399,7 +400,7 @@ Function Reset-Password
                     }
                 Else
                     {
-                    $Password = "mouse99!"
+                    $Password = "bluecat99!"
                     }
                 Set-AdAccountPassword -Identity $samaccountname -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $Password -Force) -server $server
                 if ( !$DoNotChangePasswordAtLogon )
@@ -672,7 +673,6 @@ Function New-LPSUser
     param ( 
 	[Parameter(Mandatory)]
         [string]$FirstN, 
-	[Parameter(Mandatory)]
         [string]$MI,
 	[Parameter(Mandatory)]
         [string]$LastN, 
@@ -698,7 +698,7 @@ Function New-LPSUser
     $Password = ConvertTo-SecureString $UnencryptedPassword -AsPlainText -Force
     #Write-Host "Creating New User: $FirstN $MI $LastN" -ForegroundColor White
     $HideInAddressBook=!$Enabled
-    $Activity = "Creating New User: $FirstN $MI $LastN"
+    $Activity = "Creating New User: $FirstN $MI $LastN" -Replace "  ", " "
     Write-Progress -Activity $Activity -CurrentOperation $Activity 
     $UserObject = New-Object -TypeName PSObject
     Function Set-HomeDirectory($alias, $Department, $Office)
@@ -816,7 +816,6 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         Write-Progress -Activity $Activity -CurrentOperation "Creating $alias"
         $FullN = "$FirstN $LastN"
         $principal = $alias+"@lifepathsystems.org"
-        $email = $alias+"@lifepathsystems.org"
         $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
         $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value $alias
         }
@@ -828,8 +827,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         #Write-Host "Creating $alias" -ForegroundColor Yellow
         Write-Progress -Activity $Activity -CurrentOperation "Creating $alias"
         $FullN = "$($FirstN) $($MI). $($LastN)"
-        $principal = $alias+"@ccmhmr.local"
-        $email = $alias+"@lifepathsystems.org"
+        $principal = $alias+"@lifepathsystems.org"
         $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
         $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value $alias       
         }
@@ -857,17 +855,20 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         {
 	try 
 	    {
-	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -ChangePasswordAtLogon $True -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
+	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
+	    Set-ADuser -Identity $alias -ChangePasswordAtLogon $True -Server DC01
 	    #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
 	    Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
 	    $groups = (Get-ADUser $Template -Properties memberof).memberof
-	    $groups | Where-Object { $_.Name -ne $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
+	    $groups | Where-Object { $_ -notmatch $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
 	    if ( $Mailbox )
 		{
 		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
 		Get-ADGroup $LicenseGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
+		Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
+		Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server DC01
 		}
 	    #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
 	    Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
@@ -884,7 +885,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 	    Else    
 		{
 		$UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
-		Write-Progress -Activity $HDActivity -Completed
+		Write-Progress -Activity $Activity -Completed
 		}
 
 	    If ( $SendEmail )
@@ -930,7 +931,7 @@ Function New-LPSUsersFromCSV
     In this example you are already in the current directory that the CSV File resides. It will pull in the information and create each user specified
 
     .EXAMPLE
-    New-LPSUsersFromCSV -Path "New Users.csv" -DoNotSendEmail
+    New-LPSUsersFromCSV -Path "New Users.csv" -SendEmail:$False
 
     Description:
     In this example you are telling the script to not send you an email template for each user.
@@ -971,7 +972,7 @@ Function New-LPSUsersFromCSV
         $UserObjects.Add($UserObject) | Out-Null
         $splat = $null
         }
-    Return $UserObjects
+    $UserObjects
     Get-NextADSync
     }
 

@@ -194,11 +194,35 @@ Function New-RandomPassword
     .PARAMETER CallWords
     Switch to display call words to read each character to user.
 
+    .PARAMETER Lower
+    Number of lowercase characters to use in password. Default is 7.
+
+    .PARAMETER Upper
+    Number of uppercase characters to use in password. Default is 1.
+
+    .PARAMETER Number
+    Number of numbers characters to use in password. Default is 1.
+
+    .PARAMETER Special
+    Number of special characters to use in password. Default is 1. 
+
     .EXAMPLE
     New-RandomPassword
 
     Description:
-    Generates a randomy password string.
+    Generates a randomy password string using 7 lowercase characters, 1 uppercase characters, 1 number, and one special character.
+
+    .EXAMPLE
+    New-RandomPassword -Lower 10
+
+    Description:
+    Generates a randomy password string using 10 lowercase characters, 1 uppercase characters, 1 number, and one special character.
+
+    .EXAMPLE
+    New-RandomPassword -Lower 5 -Upper 4 -Number 1 -Special 0
+
+    Description:
+    Generates a randomy password string using 5 lowercase characters, 4 uppercase characters, 1 number, and no special characters.
 
     .EXAMPLE
     New-RandomPassword -CallWords
@@ -213,8 +237,21 @@ Function New-RandomPassword
     #>
     param(
         [switch]
-        $CallWords
+        $CallWords,
+	[ValidateRange(0,255)]
+	[int]
+	$Lower=7,
+	[ValidateRange(0,255)]
+	[int]
+	$Upper=1,
+	[ValidateRange(0,255)]
+	[int]
+	$Number=1,
+	[ValidateRange(0,255)]
+	[int]
+	$Special=1
         )
+
     Function Get-RandomCharacters($length, $characters)
         { 
         $random = 1..$length | ForEach-Object { Get-Random -Maximum $characters.length } 
@@ -231,20 +268,35 @@ Function New-RandomPassword
         }
 
     # Get Random Strings
-    $password = Get-RandomCharacters -length 5 -characters 'abcdefghikmnprstuvwxyz'
-    $password += Get-RandomCharacters -length 1 -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
-    $password += Get-RandomCharacters -length 1 -characters '2345678'
-    $password += Get-RandomCharacters -length 1 -characters '!@#$%&+?'
-    $password = Scramble-String -inputstring $password
-    If ( $CallWords )
-        {
-        Write-Host $Password
-        Write-Host "$(Get-CallWords $password)"
-        }
-    Else
-        {
-        return $password
-        }
+    if ( $Lower -gt 0 )
+	{
+	$password = Get-RandomCharacters -length $Lower -characters 'abcdefghikmnprstuvwxyz'
+	}
+    if ( $Upper -gt 0 )
+	{
+	$password += Get-RandomCharacters -length $Upper -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
+	}
+    if ( $Number -gt 0 )
+	{
+	$password += Get-RandomCharacters -length $Number -characters '2345678'
+	}
+    if ( $Special -gt 0 )
+	{
+	$password += Get-RandomCharacters -length $Special -characters '!@#$%&+?'
+	}
+    if ( $password )
+	{
+	$password = Scramble-String -inputstring $password
+	If ( $CallWords )
+	    {
+	    Write-Host $Password
+	    Write-Host "$(Get-CallWords $password)"
+	    }
+	Else
+	    {
+	    return $password
+	    }
+	}
     }
 
 Function Get-Callwords
