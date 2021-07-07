@@ -10,10 +10,19 @@ $ModulePath = Join-Path $env:USERPROFILE '\Documents\WindowsPowershell\Modules\'
 Get-Item mis* | Copy-Item -Destination $ModulePath -Recurse -Force
 Set-Location $ModulePath
 Write-Host "Importing Modules and Setting up" -ForegroundColor Yellow
-$Modules = 'misScripting', 'misSecurity', 'misAD', 'misUserSession', 'misEncryption', 'misExchange'
+$Modules = 'misScripting', 'misSecurity', 'misAD', 'misUserSession', 'misEncryption'
+$Remove = 'misExchange'
 foreach ( $Module in $Modules)
     {
     Write-Host "Setting Up $Module" -ForegroundColor Yellow
     #Import-Module $Module
+    }
+foreach ( $Module in $Remove )
+    {
+    $RemovePath = Join-Path $ModulePath $Module 
+    if ( Test-Path $RemovePath )
+	{
+	Remove-Item $RemovePath -Recurse -Confirm:$False 
+	}
     }
 Write-Host "Exit now and Re-open Powershell." -ForegroundColor Yellow
