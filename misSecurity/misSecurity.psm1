@@ -282,7 +282,7 @@ Function New-RandomPassword
 	}
     if ( $Special -gt 0 )
 	{
-	$password += Get-RandomCharacters -length $Special -characters '!@#$%&+?'
+	$password += Get-RandomCharacters -length $Special -characters '!@#$&+?'
 	}
     if ( $password )
 	{
