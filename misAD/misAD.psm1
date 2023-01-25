@@ -1021,7 +1021,7 @@ Function Import-AnasaziIDs
 Function Get-NextADSync
     {
     param(
-    $Server="migrate365"
+    $Server="azuresync01"
     )
     $Results = Invoke-Command -ComputerName $Server -Scriptblock { Get-ADSyncScheduler }
     $NextSyncLocalTime = (Get-Date $($Results.NextSyncCycleStartTimeInUTC)).ToLocalTime()
