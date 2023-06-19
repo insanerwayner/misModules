@@ -26,7 +26,7 @@ Function Find-ADComputer
     Will show you computer(s) that match the Asset
 
     .EXAMPLE
-    Find-ADcomputer -Asset XXXX -Server DC01
+    Find-ADcomputer -Asset XXXX -Server dom01
 
     Description:
     Will show you computer(s) that match the Asset, but from the Server you specify.
@@ -126,10 +126,10 @@ Function Find-ADuser
     Will show you user(s) that match the string filter "test"
 
     .EXAMPLE
-    Find-ADUser test -Server DC01
+    Find-ADUser test -Server dom01
 
     Description:
-    Will show you user(s) that match the string filter "test" but query from "DC01"
+    Will show you user(s) that match the string filter "test" but query from "dom01"
     #>
     [CmdletBinding()]
     param(
@@ -150,7 +150,7 @@ Function Find-ADuser
 
     process
         {
-        if ( !$Server ) { $Server = "DC01" }
+        if ( !$Server ) { $Server = "dom01" }
         if ( $Server -ne $null )
             {
             get-aduser -ldapfilter "(|(name=*$filter*)(samaccountname=*$filter*))" -Server $Server
@@ -356,7 +356,7 @@ Function Reset-Password
     Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select. Will NOT require the user to change password at logon.
 
     .EXAMPLE
-    Reset-Password test -Server DC01
+    Reset-Password test -Server dom01
 
     Description:
     Will create a menu for any users that matches the string filter "test" and will reset the password of the user you select on the Server you specified
@@ -390,7 +390,7 @@ Function Reset-Password
         
         process
             {
-            if ( !$Server ) { $Server = "DC01" }
+            if ( !$Server ) { $Server = "dom01" }
             $samaccountname = (Select-User $Filter).samaccountname 
             if ( $samaccountname )
                 {
@@ -444,10 +444,10 @@ Function Unlock-ADUser
     Will check each Server if User is locked out and go and Unlock them
 
     .EXAMPLE
-    Unlock-ADUser test -Server DC01
+    Unlock-ADUser test -Server dom01
 
     Description:
-    Will check DC01 to see if User is locked out. If it is locked out it will unlock the user. If it is not locked it will tell you and ask if you would like to check all DCs.
+    Will check dom01 to see if User is locked out. If it is locked out it will unlock the user. If it is not locked it will tell you and ask if you would like to check all DCs.
     #>
     [CmdletBinding()]
     param(
@@ -762,7 +762,7 @@ Function New-LPSUser
 		    New-SMBShare -Name $alias -Path $LocalPath -FullAccess Everyone -CimSession $FileServer	| Out-Null
 		    #Write-Host "Setting N Drive to $SharePath" -ForegroundColor Yellow
 		    Write-Progress -Activity $HDActivity -CurrentOperation "Setting N Drive to $SharePath"	
-		    Set-AdUser -Identity $alias -HomeDirectory $SharePath -HomeDrive "N:" -Server DC01
+		    Set-AdUser -Identity $alias -HomeDirectory $SharePath -HomeDrive "N:" -Server dom01
 		    Write-Progress -Activity $HDActivity -Completed
 		    }
 		else
@@ -810,7 +810,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
     #Write-Host "Checking if username already exists" -ForegroundColor Yellow
     Write-Progress -Activity $Activity -CurrentOperation "Checking if username already exists" 
     
-    If ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$alias)" -Server DC01 ) -eq $null ) 
+    If ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$alias)" -Server dom01 ) -eq $null ) 
         {
         #Write-Host "Creating $alias" -ForegroundColor Yellow
         Write-Progress -Activity $Activity -CurrentOperation "Creating $alias"
@@ -819,7 +819,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         $UserObject | Add-Member -MemberType NoteProperty -Name DisplayName -Value $FullN
         $UserObject | Add-Member -MemberType NoteProperty -Name Alias -Value $alias
         }
-    elseif ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$aliaswithMI)" -Server DC01 ) -eq $null )
+    elseif ( ( Get-ADUser -LDAPFilter "(sAMAccountName=$aliaswithMI)" -Server dom01 ) -eq $null )
         {
         #Write-Host "$alias already exists."
         Write-Progress -Activity $Activity -CurrentOperation "$alias already exists."
@@ -855,28 +855,28 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         {
 	try 
 	    {
-	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server DC01 -ErrorAction stop | Out-Null
-	    Set-ADuser -Identity $alias -ChangePasswordAtLogon $True -Server DC01
+	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server dom01 -ErrorAction stop | Out-Null
+	    Set-ADuser -Identity $alias -ChangePasswordAtLogon $True -Server dom01
 	    #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
 	    Write-Progress -Activity $Activity -CurrentOperation "Adding Group Memberships"
 	    $groups = (Get-ADUser $Template -Properties memberof).memberof
-	    $groups | Where-Object { $_ -notmatch $LicenseGroup} | Get-ADGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server dc01
+	    $groups | Where-Object { $_ -notmatch $LicenseGroup} | Get-ADGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
 	    if ( $Mailbox )
 		{
 		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
-		Get-ADGroup $LicenseGroup -Server DC01 | Add-ADGroupMember -Members $alias -Server DC01
+		Get-ADGroup $LicenseGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
 		Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
-		Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server DC01
+		Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server dom01
 		}
 	    #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
 	    Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
 	    $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
-	    Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server DC01
+	    Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server dom01
 	    Write-Progress -Activity $Activity -CurrentOperation "Setting ScriptPath based on $($Template)"
 	    $ScriptPath = (Get-ADUser $Template -Properties ScriptPath).ScriptPath
-	    Set-ADUser $alias -ScriptPath $ScriptPath -Server DC01
+	    Set-ADUser $alias -ScriptPath $ScriptPath -Server dom01
 	    If ( $HomeDirectory )
 		{
 		Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
@@ -1012,9 +1012,9 @@ Function Import-AnasaziIDs
     $IDs = Import-CSV $Path
     Foreach ( $ID in $IDs )
         {
-        Set-ADUser $ID.SAMAccountName -EmployeeID $ID.EmployeeID -Server DC01
+        Set-ADUser $ID.SAMAccountName -EmployeeID $ID.EmployeeID -Server dom01
         }
-    $List = $IDs | Foreach { Get-ADUser $_.SAMAccountName -Properties EmployeeID -Server DC01 } 
+    $List = $IDs | Foreach { Get-ADUser $_.SAMAccountName -Properties EmployeeID -Server dom01 } 
     $List | Select Name, EmployeeID
     }
 

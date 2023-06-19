@@ -97,10 +97,10 @@ SYNOPSIS
 
     -------------------------- EXAMPLE 2 --------------------------
 
-    PS C:\>Unlock-ADUser test -Server DC01
+    PS C:\>Unlock-ADUser test -Server dom01
 
     Description:
-    Will check DC01 to see if User is locked out. If it is locked out it will unlock the user. 
+    Will check dom01 to see if User is locked out. If it is locked out it will unlock the user. 
     If it is not locked it will tell you and ask if you would like to check all DCs.
 ```
 
