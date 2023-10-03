@@ -983,7 +983,7 @@ Function Import-AnasaziIDs
     Imports employees' Anasazi IDs into Active Directory
 
     .DESCRIPTION
-    Imports employees' Anasazi IDs from a CSV file into Active Directory. Will display the results from Active Directory after finishing.
+    Imports employees' Anasazi IDs from a CSV file into Active Directory. Will display the results from Active Directory after finishing. The CSV file requires two columns: "SAMAccountName" and "EmployeeID".
 
     .NOTES   
     Name: Import-AnasaziIDs
