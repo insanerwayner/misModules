@@ -635,6 +635,9 @@ Function New-LPSUser
     .PARAMETER Mailbox
     True or False to create a mailbox for this user. Will add the user to the selected E3 License Security Group, thus prompting assigning a license which will cause Exchange Online to create a mailbox. (Default True)
 
+    .PARAMETER EmployeeID
+    The Payroll ID from HR.
+
     .PARAMETER SendEmail 
     True or False to send email template to yourself. ( Default True )
     
@@ -683,6 +686,8 @@ Function New-LPSUser
 	[Parameter(Mandatory)]
 	[ValidateSet("Admin","BH","ECI","IDD")]
         [string]$Department, 
+	[Parameter(Mandatory)]
+        [string]$EmployeeID,
 	[Parameter(Mandatory)]
         [string]$Template, 
         [bool]$HomeDirectory=$True, 
@@ -855,7 +860,7 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
         {
 	try 
 	    {
-	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttribute @{'msExchHideFromAddressLists'=$HideInAddressBook} -Server dom01 -ErrorAction stop | Out-Null
+	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttributes @{'msExchHideFromAddressLists'=$HideInAddressBook; 'EmployeeID'=$EmployeeID} -Server dom01 -ErrorAction stop | Out-Null
 	    Set-ADuser -Identity $alias -ChangePasswordAtLogon $True -Server dom01
 	    #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
@@ -976,46 +981,92 @@ Function New-LPSUsersFromCSV
     Get-NextADSync
     }
 
-Function Import-AnasaziIDs
+Function Import-CostCenters
     {
     <#
     .Synopsis
-    Imports employees' Anasazi IDs into Active Directory
+    Imports employees' Cost Centers into Active Directory.
 
     .DESCRIPTION
-    Imports employees' Anasazi IDs from a CSV file into Active Directory. Will display the results from Active Directory after finishing. The CSV file requires two columns: "SAMAccountName" and "EmployeeID".
+    Imports employees' Cost Centers from a CSV file into Active Directory. The CSV file requires the following columns: "first_name", "last_name", "Employee_Code", and "Department". It will find a single match for the EmployeeID and update the Cost Center for that employee in Active Directory.
 
     .NOTES   
-    Name: Import-AnasaziIDs
+    Name: Import-CostCenters
     Author: Wayne Reeves
-    Version: 11.29.17
+    Version: 2023.11.29
 
-    .PARAMETER Path
-    The path of the CSV File you are importing. The Default is "\\missvr2\mis\Apps\Anasazi\Active Directory Updates\AnasaziIDs.csv"
-
-    .EXAMPLE
-    Import-AnasaziIDs
-
-    Description:
-    In this example you are simply using the default path after preloading the CSV file. No parameters are required.
+    .PARAMETER FilePath
+    The path of the CSV File you are importing.
 
     .EXAMPLE
-    Import-AnasaziIDs -Path C:\temp\AnasaziIDs.csv
+    Import-CostCenters -FilePath C:\temp\CostCenters.csv
 
     Description:
-    In this example you are telling the script to pull from a different path for the CSV file.
+    In this example you are specifying a path using the FilePath Parameter
+
+    .EXAMPLE
+    Import-CostCenters  C:\temp\CostCenters.csv
+
+    Description:
+    In this example you are specifying a path without using the FilePath Parameter. It will know implicitely this is the FilePath.
     #>
 
+    [CmdletBinding()]
     param(
-        $Path = "\\missvr2\mis\Apps\Anasazi\Active Directory Updates\AnasaziIDs.csv"
+	[ValidateScript(
+	{
+	if(-Not ($_ | Test-Path) )
+	    {
+	    throw "File or folder does not exist"
+	    }
+	if(-Not ($_ | Test-Path -PathType Leaf) )
+	    {
+	    throw "The Path argument must be a file. Folder paths are not allowed."
+	    }
+	return $true 
+	})]
+	[Parameter(Position=0,mandatory=$true)]
+	[System.IO.FileInfo]$FilePath
         )
-    $IDs = Import-CSV $Path
+    $Counter = 0
+    Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Getting All Users from Active Directory" -PercentComplete 0
+    $AllUsers = Get-ADUser -Filter * -Properties EmployeeID -Server Dom01
+    $IDs = Import-CSV $FilePath | Select-Object @{N="Name";E={"$($_.first_name+" "+$_.last_name)"}}, @{N="EmployeeID";E={$_.Employee_Code}}, @{N="EmployeeType";E={$_.Department}}
+    $AllIDCount = ($IDs | Measure-Object).count
+    $BadMatches = @()
     Foreach ( $ID in $IDs )
         {
-        Set-ADUser $ID.SAMAccountName -EmployeeID $ID.EmployeeID -Server dom01
+        ++$Counter
+        $Progress = ($Counter/$AllIDCount) * 100
+        Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Importing $ID.Name, $ID.EmployeeID, $ID.EmployeeType" -PercentComplete $Progress
+        $IDMatches = $AllUsers | ? EmployeeID -eq $ID.EmployeeID
+        $Count = ($IDMatches | Measure-Object).count
+        If ( $Count -eq 1 )
+            {
+            Set-ADUser $IDMatches.SAMAccountName -EmployeeID $ID.EmployeeID -Replace @{EmployeeType=$ID.EmployeeType} -Server dom01
+            }
+        Elseif ( $Count -gt 1 )
+            {
+            $ID | Add-Member -MemberType NoteProperty -Name RecommendedAction -Value "Find and eliminate duplicate EmployeeID from Active Directory"
+            $BadMatches += $ID
+            Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Skipping $ID" -PercentComplete $Progress
+            }
+        Else
+            {
+            $ID | Add-Member -MemberType NoteProperty -Name RecommendedAction -Value "Add EmployeeID to appropriate match in Active Directory"
+            $BadMatches += $ID
+            Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Skipping $ID" -PercentComplete $Progress
+            }
+            }
+    If ( $BadMatches )
+        {
+        Write-Host "Cost Centers imported with the following exceptions:"
+        Return $BadMatches
         }
-    $List = $IDs | Foreach { Get-ADUser $_.SAMAccountName -Properties EmployeeID -Server dom01 } 
-    $List | Select Name, EmployeeID
+    Else
+        {
+        Write-Host "All Cost Centers imported successfully"
+        }
     }
 
 Function Get-NextADSync
