@@ -240,7 +240,7 @@ Function New-RandomPassword
         $CallWords,
 	[ValidateRange(0,255)]
 	[int]
-	$Lower=7,
+	$Lower=13,
 	[ValidateRange(0,255)]
 	[int]
 	$Upper=1,
