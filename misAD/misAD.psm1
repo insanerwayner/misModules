@@ -400,7 +400,7 @@ Function Reset-Password
                     }
                 Else
                     {
-                    $Password = "bluecat99!"
+                    $Password = "green kitten tail"
                     }
                 Set-AdAccountPassword -Identity $samaccountname -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $Password -Force) -server $server
                 if ( !$DoNotChangePasswordAtLogon )
