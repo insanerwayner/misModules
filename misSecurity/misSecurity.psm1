@@ -382,14 +382,15 @@ Function Get-Callwords
             "7" { "seven" }
             "8" { "eight" }
             "9" { "nine" }
-            "!" { "exclamation" }
-            "@" { "at-sign" }
-            '#' { "number-sign" }
-            "$" { "dollar-sign" }
-            "%" { "percent" }
-            "&" { "ampersand" }
-            "+" { "plus-sign" }
-            "?" { "question-mark" }
+            "!" { "::exclamation::" }
+            "@" { "::at-sign::" }
+            '#' { "::number-sign::" }
+            "$" { "::dollar-sign::" }
+            "%" { "::percent::" }
+            "&" { "::ampersand::" }
+            "+" { "::plus-sign::" }
+            "?" { "::question-mark::" }
+            " " { "::space::" }
             }
         }
     return $CallWords
