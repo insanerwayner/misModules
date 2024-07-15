@@ -1123,6 +1123,11 @@ Function Set-ProfilePhotos
         Write-Error "This command requires curl to function"
         exit
         }
+    $Bearer = Get-XMLPassword -Name "WorkvivoAPI-1000152" -Type Password -AsPlainText $True
+    if ( $null -eq $Bearer )
+        {
+        Write-Error -ErrorAction Break -Message 'No password for Workvivo API Provided'
+        }
 
     $EmployeeListFile = Join-Path $FolderPath "EmployeeList.csv"
 
@@ -1141,7 +1146,7 @@ Function Set-ProfilePhotos
         $headers = @{
                     "Accept" = "application/json"
                     "Workvivo-Id" = "1000152"
-                    "Authorization" = "Bearer 41|2abe1136b82b7c3170ee1e4acfe593511e94eb56"
+                    "Authorization" = "Bearer $Bearer"
                     }
         $response = Invoke-WebRequest -Uri "https://api.workvivo.us/v1/users/by-email/$($userID)" -Headers $headers
         $WorkvivoUser = (ConvertFrom-Json $response.content).data
@@ -1161,9 +1166,9 @@ Function Set-ProfilePhotos
             {
             $uri = "https://api.workvivo.us/v1/users/by-external-id/$WorkvivoUser/profile-photo"
             $response = curl.exe -s --location --request PUT $uri `
-            --header 'Workvivo-Id: 1000152' `
-            --header 'Authorization: Bearer 41|2abe1136b82b7c3170ee1e4acfe593511e94eb56' `
-            --form image=@"$($InFile.FullName)"
+                --header 'Workvivo-Id: 1000152' `
+                --header "Authorization: Bearer $Bearer" `
+                --form image=@"$($InFile.FullName)"
             $response = (ConvertFrom-Json $response).data
             if ( -not $response.avatar_url )
                 {
