@@ -968,6 +968,10 @@ Function New-LPSUsersFromCSV
 	    {
 	    $User.Mailbox = [bool]::Parse($User.Mailbox)
 	    }
+        if ( $User.Enabled )
+            {
+            $User.Enabled = [bool]::Parse($User.Enabled)
+            }
         if ( !$SendEmail )
             {
             $User | Add-Member -Type NoteProperty -Name SendEmail -Value $False
