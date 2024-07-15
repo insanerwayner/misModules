@@ -985,31 +985,31 @@ Function New-LPSUsersFromCSV
     Get-NextADSync
     }
 
-Function Import-CostCenters
+Function Import-HRData
     {
     <#
     .Synopsis
-    Imports employees' Cost Centers into Active Directory.
+    Imports employees' Cost Centers and Managers into Active Directory.
 
     .DESCRIPTION
-    Imports employees' Cost Centers from a CSV file into Active Directory. The CSV file requires the following columns: "first_name", "last_name", "Employee_Code", and "Department". It will find a single match for the EmployeeID and update the Cost Center for that employee in Active Directory.
+    Imports employees' Cost Centers and Managers from a CSV file into Active Directory. The CSV file requires the following columns: "first_name", "last_name", "Employee_Code", "Department", and "Supervisor_Primary_Code". It will find a single match for the EmployeeID and update the Cost Center for that employee in Active Directory.
 
     .NOTES   
-    Name: Import-CostCenters
+    Name: Import-HRData
     Author: Wayne Reeves
-    Version: 2023.11.29
+    Version: 2024.07.15
 
     .PARAMETER FilePath
     The path of the CSV File you are importing.
 
     .EXAMPLE
-    Import-CostCenters -FilePath C:\temp\CostCenters.csv
+    Import-HRData -FilePath C:\temp\HRData.csv
 
     Description:
     In this example you are specifying a path using the FilePath Parameter
 
     .EXAMPLE
-    Import-CostCenters  C:\temp\CostCenters.csv
+    Import-HRData  C:\temp\HRData.csv
 
     Description:
     In this example you are specifying a path without using the FilePath Parameter. It will know implicitely this is the FilePath.
@@ -1033,43 +1033,44 @@ Function Import-CostCenters
 	[System.IO.FileInfo]$FilePath
         )
     $Counter = 0
-    Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Getting All Users from Active Directory" -PercentComplete 0
+    Write-Progress -Activity "Import HR Data" -CurrentOperation "Getting All Users from Active Directory" -PercentComplete 0
     $AllUsers = Get-ADUser -Filter * -Properties EmployeeID -Server Dom01
-    $IDs = Import-CSV $FilePath | Select-Object @{N="Name";E={"$($_.first_name+" "+$_.last_name)"}}, @{N="EmployeeID";E={$_.Employee_Code}}, @{N="EmployeeType";E={$_.Department}}
+    $IDs = Import-CSV $FilePath | Select-Object @{N="Name";E={"$($_.first_name+" "+$_.last_name)"}}, @{N="EmployeeID";E={$_.Employee_Code}}, @{N="EmployeeType";E={$_.Department}}, @{N="ManagerID";E={$_.Supervisor_Primary_Code}}
     $AllIDCount = ($IDs | Measure-Object).count
     $BadMatches = @()
     Foreach ( $ID in $IDs )
         {
         ++$Counter
         $Progress = ($Counter/$AllIDCount) * 100
-        Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Importing $ID.Name, $ID.EmployeeID, $ID.EmployeeType" -PercentComplete $Progress
-        $IDMatches = $AllUsers | ? EmployeeID -eq $ID.EmployeeID
+        Write-Progress -Activity "Import HR Data" -CurrentOperation "Importing $ID.Name, $ID.EmployeeID" -PercentComplete $Progress
+        $IDMatches = $AllUsers | Where-Object EmployeeID -eq $ID.EmployeeID
+        $Manager = ($AllUsers | Where-Object EmployeeID -eq $ID.ManagerID).samaccountname
         $Count = ($IDMatches | Measure-Object).count
         If ( $Count -eq 1 )
             {
-            Set-ADUser $IDMatches.SAMAccountName -EmployeeID $ID.EmployeeID -Replace @{EmployeeType=$ID.EmployeeType} -Server dom01
+            Set-ADUser $IDMatches.SAMAccountName -EmployeeID $ID.EmployeeID -Replace @{EmployeeType=$ID.EmployeeType} -Manager $Manager -Server dom01
             }
         Elseif ( $Count -gt 1 )
             {
             $ID | Add-Member -MemberType NoteProperty -Name RecommendedAction -Value "Find and eliminate duplicate EmployeeID from Active Directory"
             $BadMatches += $ID
-            Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Skipping $ID" -PercentComplete $Progress
+            Write-Progress -Activity "Import HR Data" -CurrentOperation "Skipping $ID" -PercentComplete $Progress
             }
         Else
             {
             $ID | Add-Member -MemberType NoteProperty -Name RecommendedAction -Value "Add EmployeeID to appropriate match in Active Directory"
             $BadMatches += $ID
-            Write-Progress -Activity "Import Cost Centers" -CurrentOperation "Skipping $ID" -PercentComplete $Progress
+            Write-Progress -Activity "Import HR Data" -CurrentOperation "Skipping $ID" -PercentComplete $Progress
             }
             }
     If ( $BadMatches )
         {
-        Write-Host "Cost Centers imported with the following exceptions:"
-        Return $BadMatches
+        Write-Host "HR Data imported with the following exceptions:"
+        $BadMatches | Format-Table Name, EmployeeID, RecommendedAction
         }
     Else
         {
-        Write-Host "All Cost Centers imported successfully"
+        Write-Host "All HR Data imported successfully"
         }
     }
 
