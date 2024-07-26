@@ -1,4 +1,5 @@
-﻿#requires -Modules ActiveDirectory, misScripting
+﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users
+#requires -Version 7.0
 Function Find-ADComputer
     {
     <#
