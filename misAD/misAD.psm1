@@ -1149,9 +1149,16 @@ Function Set-ProfilePhotos
                     "Workvivo-Id" = "1000152"
                     "Authorization" = "Bearer $Bearer"
                     }
-        $response = Invoke-WebRequest -Uri "https://api.workvivo.us/v1/users/by-email/$($userID)" -Headers $headers
-        $WorkvivoUser = (ConvertFrom-Json $response.content).data
-        return $WorkvivoUser
+        try
+            {
+            $response = Invoke-WebRequest -Uri "https://api.workvivo.us/v1/users/by-email/$($userID)" -Headers $headers -ErrorAction Stop
+            $WorkvivoUser = (ConvertFrom-Json $response.content).data
+            return $WorkvivoUser
+            }
+        catch
+            {
+            Write-Error "No workvivo user found for $UserID"
+            }
         }
 
     Function Set-WorkvivoPhoto
@@ -1175,10 +1182,6 @@ Function Set-ProfilePhotos
                 {
                 Write-Error "Error Writing to Workvivo: $userID"
                 }
-            }
-        else
-            {
-            Write-Error "No workvivo user found for $UserID"
             }
         }
 
