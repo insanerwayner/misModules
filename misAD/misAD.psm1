@@ -1,5 +1,4 @@
 ﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users
-#requires -Version 7.0
 Function Find-ADComputer
     {
     <#
@@ -1118,12 +1117,16 @@ Function Set-ProfilePhotos
       )
 
     try
-        { Get-Command curl.exe -ErrorAction Stop | Out-Null }
+        { Get-Command "curl.exe" -ErrorAction Stop | Out-Null }
     catch
         {
-        Write-Error "This command requires curl to function"
-        exit
+        Write-Error "This command requires curl to function" -ErrorAction Stop
         }
+    if ( $PSVersionTable.PSEdition -eq "Desktop" )
+        {
+        Write-Error 'This command requires "PowerShell Core" vs "Windows PowerShell"' -ErrorAction Stop
+        }
+
     $Bearer = Get-XMLPassword -Name "WorkvivoAPI-1000152" -Type Password -AsPlainText $True
     if ( $null -eq $Bearer )
         {
