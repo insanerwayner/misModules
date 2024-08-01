@@ -177,7 +177,7 @@ Function Get-XMLPassword
                     }
                 }
             New-XMLPassword -Name $Name -Type $Type
-            Get-XMLPassword -Name $Name -Type $Type
+            Get-XMLPassword -Name $Name -Type $Type -AsPlainText $AsPlainText
             }
         }
     }

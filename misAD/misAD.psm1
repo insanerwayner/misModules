@@ -1,4 +1,4 @@
-﻿#requires -Modules ActiveDirectory, misScripting
+﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users
 Function Find-ADComputer
     {
     <#
@@ -1082,4 +1082,180 @@ Function Get-NextADSync
     $Results = Invoke-Command -ComputerName $Server -Scriptblock { Get-ADSyncScheduler }
     $NextSyncLocalTime = (Get-Date $($Results.NextSyncCycleStartTimeInUTC)).ToLocalTime()
     Write-Host "Next AD Sync Cycle Start Time: $($NextSyncLocalTime)" -ForegroundColor Yellow
+    }
+
+Function Set-ProfilePhotos
+    {
+    <#
+    .SYNOPSIS
+    Sets profile pics of users in Entra and/or Workvivo
+
+    .DESCRIPTION
+    Uploads profile pictures of users based on files named with their EmployeeIDs to Entra and/or Workvivo
+
+    .NOTES   
+    Name: Set-ProfilePhotos
+    Author: Wayne Reeves
+    Version: 2024.07.15
+
+    .PARAMETER <FolderPath>
+    Path where the pictures are stored; Defaults to current folder, if not specified
+
+    .PARAMETER <FileType>
+    File extenstion type to filter for; Valid values are "All", "png", "jpg"; Defaults to "All"
+
+    .PARAMETER <Destination>
+    Where you want to upload the photos; Options are "All", "Entra", or "Workvivo"; Defaults to "All"
+
+    #>
+    param(
+      $FolderPath = $(Get-Location),
+      [ValidateSet("All", "png", "jpg")]
+      $FileType = "All",
+      [ValidateSet("All", "Entra", "Workvivo")]
+      $Destination = "All"
+      )
+
+    try
+        { Get-Command "curl.exe" -ErrorAction Stop | Out-Null }
+    catch
+        {
+        Write-Error "This command requires curl to function" -ErrorAction Stop
+        }
+    if ( $PSVersionTable.PSEdition -eq "Desktop" )
+        {
+        Write-Error 'This command requires "PowerShell Core" vs "Windows PowerShell"' -ErrorAction Stop
+        }
+
+    $Bearer = Get-XMLPassword -Name "WorkvivoAPI-1000152" -Type Password -AsPlainText $True
+    if ( $null -eq $Bearer )
+        {
+        Write-Error -ErrorAction Break -Message 'No password for Workvivo API Provided'
+        }
+
+    $EmployeeListFile = Join-Path $FolderPath "EmployeeList.csv"
+
+    Function Connect-Entra
+        {
+        Write-Progress -Activity "Setting User Profile Pics" -Status "Connecting to Microsoft Graph"
+        # Connect to MS Graph with correct permission
+        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All" -NoWelcome
+        }
+
+    Function Get-WorkvivoUser
+        {
+        param(
+            $userID
+            )
+        $headers = @{
+                    "Accept" = "application/json"
+                    "Workvivo-Id" = "1000152"
+                    "Authorization" = "Bearer $Bearer"
+                    }
+        try
+            {
+            $response = Invoke-WebRequest -Uri "https://api.workvivo.us/v1/users/by-email/$($userID)" -Headers $headers -ErrorAction Stop
+            $WorkvivoUser = (ConvertFrom-Json $response.content).data
+            return $WorkvivoUser
+            }
+        catch
+            {
+            Write-Error "No workvivo user found for $UserID"
+            }
+        }
+
+    Function Set-WorkvivoPhoto
+        {
+        param(
+            $userID,
+            [System.IO.FileInfo]$InFile
+            )
+        $WorkvivoUser = Get-WorkvivoUser -userID $userID
+        $WorkvivoUser = $WorkvivoUser.external_id
+
+        if ( $WorkvivoUser )
+            {
+            $uri = "https://api.workvivo.us/v1/users/by-external-id/$WorkvivoUser/profile-photo"
+            $response = curl.exe -s --location --request PUT $uri `
+                --header 'Workvivo-Id: 1000152' `
+                --header "Authorization: Bearer $Bearer" `
+                --form image=@"$($InFile.FullName)"
+            $response = (ConvertFrom-Json $response).data
+            if ( -not $response.avatar_url )
+                {
+                Write-Error "Error Writing to Workvivo: $userID"
+                }
+            }
+        }
+
+    Function Set-EntraPhoto
+        {
+        param(
+            $userID,
+            [System.IO.FileInfo]$InFile
+            )
+        if ( $($($InFile.Length)/1MB) -le 4 )
+            {
+            Set-MgUserPhotoContent -UserId $userId -InFile $photoPath
+            }
+        else
+            {
+            Write-Error "$($inFile.name) is too large for Entra"
+            }
+        }
+
+    if ( "All", "Entra" -contains $Destination )
+        {
+        Connect-Entra
+        }
+
+    # Get all user profiles
+    Write-Progress -Activity "Setting User Profile Pics" -CurrentOperation "Getting all users with EmployeeIDs"
+    $users = Get-ADUser -Filter * -Properties employeeid -Server dom01 | Where-Object { $null -ne $_.EmployeeID -and $_.EmployeeID.StartsWith("A") }
+    $users  | Select-Object EmployeeID, GivenName, SurName | Export-CSV -Path $EmployeeListFile -UseQuotes Never
+    switch ( $FileType )
+        {
+        "All" { [array]$FileType = ".png", ".jpg" }
+        "png" { [array]$FileType = ".png" }
+        "jpg" { [array]$FileType = ".jpg" }
+        }
+    $Files = Get-ChildItem $FolderPath -File | Where-Object { $FileType -contains $_.Extension }
+    $sum = $Files.count
+
+    for ( $i=0; $i -lt $sum; $i++ )
+        {
+        $CurrentFile = $Files[$i]
+        $employeeID = $CurrentFile.BaseName
+        $user = ($users | Where-Object { $_.EmployeeID -eq $employeeID })
+        $userId = $user.UserPrincipalName
+        $photoPath = $CurrentFile.FullName
+        # Check if the photo has a matching employee
+        if ( $userID -and $user.Enabled -eq $True )
+            {
+            # Update the user's profile photo
+            switch ( $Destination )
+                {
+                "All" 	    {
+                            Write-Progress -Activity "Setting User Profile Pics" -Status "Setting Entra Profile Pic for $($userID):$($employeeID)" -PercentComplete  $(($i/$sum)*100)
+                            Set-EntraPhoto -UserId $userId -InFile $photoPath
+                            Write-Progress -Activity "Setting User Profile Pics" -Status "Setting Workvivo Profile Pic for $($userID):$($employeeID)" -PercentComplete  $(($i/$sum)*100)
+                            Set-WorkvivoPhoto -userID $userID -InFile $CurrentFile
+                            }
+                "Entra"     {
+                            Write-Progress -Activity "Setting User Profile Pics" -Status "Setting Entra Profile Pic for $($userID):$($employeeID)" -PercentComplete  $(($i/$sum)*100)
+                            Set-EntraPhoto -UserId $userID -InFile $photoPath
+                            Start-Sleep 1
+                            }
+                "Workvivo"  {
+                            Write-Progress -Activity "Setting User Profile Pics" -Status "Setting Workvivo Profile Pic for $($userID):$($employeeID)" -PercentComplete  $(($i/$sum)*100)
+                            Set-WorkvivoPhoto -userID $userID -InFile $CurrentFile
+                            Start-Sleep 1
+                            }
+                }
+            }
+        else
+            {
+            Write-Error "No match found for $employeeID"
+            }
+        }
     }
