@@ -1296,7 +1296,7 @@ Function Export-EntraSigninReport
     specified and outputs to a csv file.
 
     .NOTES   
-    Name: Get-EntraSigninLogs
+    Name: Export-EntraSigninReport
     Author: Wayne Reeves
     Version: 2025.03.14
 
@@ -1313,16 +1313,16 @@ Function Export-EntraSigninReport
     Specify the file path and name for the report
 
     .EXAMPLE
-    Get-EntraSigninLogs -Username wreeves -StartDate "2025-03-01 07:00AM" -EndDate "4PM"
+    Export-EntraSigninReport -Username wreeves -StartDate "2025-03-01 07:00AM" -EndDate "4PM"
 
     Description:
     Will get logs from March 1st, 2025 to 4PM today. 
 
     .EXAMPLE
-    Get-EntraSigninLogs -Username wreeves -StartDate "February 9 07:00AM" -EndDate "March 1 5PM" -FilePath C:\temp\wreeves.csv
+    Export-EntraSigninReport -Username wreeves -StartDate "February 9 07:00AM" -EndDate "March 1 5PM" -FilePath C:\temp\wreeves_export.csv
 
     Description:
-    Will get logs from February 9th at 7AM to March 1st at 5PM and output the csv file to c:\temp\
+    Will get logs from February 9th at 7AM to March 1st at 5PM and output the csv file to c:\temp\wreeves_export.csv
     #>
 
     [CmdletBinding()]
@@ -1357,7 +1357,6 @@ Function Export-EntraSigninReport
     Confirm-MgGraph -RequiredScopes 'AuditLog.Read.All','Directory.Read.All'
 
     try
-
         {
         $userprincipalname = (Get-ADUser $Username).userprincipalname
         }
@@ -1378,7 +1377,6 @@ Function Export-EntraSigninReport
     $TotalDays = ($EndDate - $StartDate).days + 1
     $count = 0
     $entralogs = @()
-
     while ( $StartDate -lt $EndDate )
         {
         $PercentComplete = ( ( $count * 7 ) / $TotalDays ) * 100
