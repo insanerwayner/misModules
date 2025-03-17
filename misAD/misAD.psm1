@@ -7,18 +7,28 @@ Function Confirm-MgGraph
     Ensures an active Microsoft Graph session with the required scopes.
 
     .DESCRIPTION
-    The Confirm-MgGraph function checks for an active Microsoft Graph session by attempting to retrieve the current context via Get-MgContext. If no active session is foundΓÇöor if the current session is missing any of the specified OAuth scopesΓÇöit initiates a connection to Microsoft Graph using Connect-MgGraph with the required scopes. This guarantees that subsequent Microsoft Graph operations have the necessary permissions.
+    The Confirm-MgGraph function checks for an active Microsoft Graph session
+    by attempting to retrieve the current context via Get-MgContext. If no
+    active session is foundΓÇöor if the current session is missing any of the
+    specified OAuth scopesΓÇöit initiates a connection to Microsoft Graph using
+    Connect-MgGraph with the required scopes. This guarantees that subsequent
+    Microsoft Graph operations have the necessary permissions.
 
     .PARAMETER RequiredScopes
-    An array of required OAuth scopes for the session. The default value is @("AuditLog.Read.All", "Directory.Read.All"). If the current session does not include all of these scopes, the function will request additional consent by reconnecting with Connect-MgGraph.
+    An array of required OAuth scopes for the session. The default value is
+    @("AuditLog.Read.All", "Directory.Read.All"). If the current session does
+    not include all of these scopes, the function will request additional
+    consent by reconnecting with Connect-MgGraph.
 
     .EXAMPLE
     Confirm-MgGraph
-    Checks for an active Graph session with the default scopes. If none exists or if any required scopes are missing, it connects using the defaults.
+    Checks for an active Graph session with the default scopes. If none exists
+    or if any required scopes are missing, it connects using the defaults.
 
     .EXAMPLE
     Confirm-MgGraph -RequiredScopes "User.ReadWrite.All", "Group.ReadWrite.All"
-    Checks for an active Graph session with the specified scopes. If the session lacks any of these scopes, it will prompt for additional consent.
+    Checks for an active Graph session with the specified scopes. If the
+    session lacks any of these scopes, it will prompt for additional consent.
 
     .NOTES
     - Requires the Microsoft.Graph.Authentication module to be imported.
