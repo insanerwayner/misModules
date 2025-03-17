@@ -1350,7 +1350,7 @@ Function Export-EntraSigninReport
         param(
         [datetime]$Date
         )
-        $NewDate = Get-Date $Date.tostring("yyyyy-MM-ddTHH:mm:ssZ") -UFormat "%F %R TZOffset:%Z"
+        $NewDate = (Get-Date $Date.tostring("yyyy-MM-ddTHH:mm:ssZ") -UFormat "%F %R TZOffset:%Z").tostring().Replace("TZOffset:-05","CDT").Replace("TZOffset:-06","CST")
         return [string]$NewDate
         }
 
