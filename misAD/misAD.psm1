@@ -1407,6 +1407,13 @@ Function Export-EntraSigninReport
         }
 
     Write-Progress -Activity "Sign in logs" -Status "Writing CSV"
-    $entralogs | Select-Object @{e={(Convert-ToCurrentTZ -Date $_.createddatetime)};label="DateTime"}, resourceDisplayName, clientAppUsed, ipAddress, Location, DeviceDetail | Sort-Object DateTime | Export-csv $CSVFile
+    $entralogs | Select-Object `
+        @{e={(Convert-ToCurrentTZ -Date $_.createddatetime)};label="DateTime"},
+        AppDisplayName,
+        clientAppUsed,
+        ipAddress,
+        @{label="Location";e={"$($_.location.City), $($_.location.State), $($_.Location.CountryorRegion)"}},
+        @{label="DeviceName";e={$_.DeviceDetail.DisplayName}},
+        @{label="OperatingSystem";e={$_.DeviceDetail.OperatingSystem}} | Sort-Object DateTime | Export-csv $CSVFile
     Write-Host "Report written to $CSVFile" -ForegroundColor Yellow
     }
