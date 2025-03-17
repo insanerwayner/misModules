@@ -1,6 +1,6 @@
 ﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users
 
-function Confirm-MgGraph
+Function Confirm-MgGraph
     {
     param(
         [string[]]$RequiredScopes = @("AuditLog.Read.All", "Directory.Read.All")
