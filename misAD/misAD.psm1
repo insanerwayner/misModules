@@ -1259,3 +1259,130 @@ Function Set-ProfilePhotos
             }
         }
     }
+
+Function Export-EntraSigninReport
+    {
+    #Requires -Modules Microsoft.Entra
+    <#
+    .Synopsis
+    Exports Microsoft Entra for Sign-in Logs for a user account to a csv
+
+    .DESCRIPTION
+    Queries Microsoft Entra for Sign-in Logs for a user account between the dates
+    specified and outputs to a csv file.
+
+    .NOTES   
+    Name: Get-EntraSigninLogs
+    Author: Wayne Reeves
+    Version: 2025.03.14
+
+    .PARAMETER Username
+    Asset Tag of the Computer you are searching for
+
+    .PARAMETER StartDate
+    The date you want to start the query from
+
+    .PARAMETER EndDate
+    The date for the last log
+
+    .PARAMETER FilePath
+    Specify the file path and name for the report
+
+    .EXAMPLE
+    Get-EntraSigninLogs -Username wreeves -StartDate "2025-03-01 07:00AM" -EndDate "4PM"
+
+    Description:
+    Will get logs from March 1st, 2025 to 4PM today. 
+
+    .EXAMPLE
+    Get-EntraSigninLogs -Username wreeves -StartDate "February 9 07:00AM" -EndDate "March 1 5PM" -FilePath C:\temp\wreeves.csv
+
+    Description:
+    Will get logs from February 9th at 7AM to March 1st at 5PM and output the csv file to c:\temp\
+    #>
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory=$true)]
+        $Username,
+        [parameter(Mandatory=$true)]
+        [datetime]$StartDate,
+        [parameter(Mandatory=$true)]
+        [datetime]$EndDate,
+        $FilePath = (Join-Path $pwd.path "$Username.csv")
+    )
+
+    function Convert-ToUTC
+        {
+        param(
+        [datetime]$Date
+        )
+        $Date = $Date.ToUniversalTime()
+        Get-Date $Date -Format yyyy-MM-ddTHH:mm:ssZ
+        }
+
+    Function Convert-ToCurrentTZ
+        {
+        param(
+        [datetime]$Date
+        )
+        $NewDate = Get-Date $Date.tostring("yyyyy-MM-ddTHH:mm:ssZ") -UFormat "%F %R TZOffset:%Z"
+        return [string]$NewDate
+        }
+
+    Connect-entra -scopes 'AuditLog.Read.All','Directory.Read.All' -NoWelcome
+
+    try
+
+        {
+        $userprincipalname = (Get-ADUser $Username).userprincipalname
+        }
+    catch
+        {
+        Write-Error "$Username not found"
+        throw
+        }
+
+    $CSVFile = $FilePath
+
+    if ( ((Get-Date) - $StartDate).days -ge 31 )
+        {   
+        $StartDate = (Get-Date).AddDays(-30)
+        Write-Host "StartDate is greater than maximum of 30 days from current date. `nSetting StartDate to $StartDate" -ForegroundColor Yellow
+        }
+
+    $TotalDays = ($EndDate - $StartDate).days + 1
+    $count = 0
+    $entralogs = @()
+
+    while ( $StartDate -lt $EndDate )
+        {
+        $PercentComplete = ( ( $count * 7 ) / $TotalDays ) * 100
+        $TempEndDate = $StartDate.adddays(7)
+        [string]$UTCStartDate = Convert-ToUTC -Date $StartDate
+        if ( $TempEndDate -gt $EndDate )
+        {
+        [string]$UTCEndDate = Convert-ToUTC -Date $EndDate
+        }
+        else
+        {
+        [string]$UTCEndDate = Convert-ToUTC -Date $TempEndDate
+        }
+        Write-Progress -Activity "Sign in logs" -Status "Fetching Entra Sign-in logs from $UTCStartDate to $UTCEndDate" -PercentComplete $PercentComplete
+        try {
+            $logs += Get-EntraAuditSigninLog -Filter "userPrincipalName eq `'$userprincipalname`' and createdDateTime ge $UTCStartDate and createdDateTime le $UTCEndDate"
+            $entralogs += $logs
+            $StartDate = $TempEndDate
+            }
+        catch
+            {
+            Write-Error "Failed to retrieve logs for period $UTCSTartDate to $UTCEndDate. Aborting"
+            throw
+            }
+        $count++
+        }
+
+    Write-Progress -Activity "Sign in logs" -Status "Writing CSV"
+    $entralogs | Select-Object @{e={(Convert-ToCurrentTZ -Date $_.createddatetime)};label="DateTime"}, resourceDisplayName, clientAppUsed, ipAddress, Location, DeviceDetail | Sort-Object DateTime | Export-csv $CSVFile
+    Write-Host "Report written to $CSVFile" -ForegroundColor Yellow
+    }
