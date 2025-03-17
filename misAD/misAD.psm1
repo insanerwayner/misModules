@@ -1,4 +1,35 @@
 ﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users
+
+function Confirm-MgGraph
+    {
+    param(
+        [string[]]$RequiredScopes = @("AuditLog.Read.All", "Directory.Read.All")
+    )
+    try
+        {
+        $ctx = Get-MgContext -ErrorAction Stop
+        }
+    catch
+        {
+        $ctx = $null
+        }
+
+    if ( -not $ctx )
+        {
+        Write-Host "No active Graph session found. Connecting with scopes: $($RequiredScopes -join ', ')"
+        Connect-MgGraph -Scopes $RequiredScopes -NoWelcome
+        }
+    else
+        {
+        $missingScopes = $RequiredScopes | Where-Object { $ctx.Scopes -notcontains $_ }
+        if ( $missingScopes )
+            {
+            Write-Host "Missing scopes: $($missingScopes -join ', '). Requesting additional consent..."
+            Connect-MgGraph -Scopes $RequiredScopes -NoWelcome
+            }
+        }
+    }
+
 Function Find-ADComputer
     {
     <#
@@ -1135,13 +1166,6 @@ Function Set-ProfilePhotos
 
     $EmployeeListFile = Join-Path $FolderPath "EmployeeList.csv"
 
-    Function Connect-Entra
-        {
-        Write-Progress -Activity "Setting User Profile Pics" -Status "Connecting to Microsoft Graph"
-        # Connect to MS Graph with correct permission
-        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All" -NoWelcome
-        }
-
     Function Get-WorkvivoUser
         {
         param(
@@ -1206,7 +1230,8 @@ Function Set-ProfilePhotos
 
     if ( "All", "Entra" -contains $Destination )
         {
-        Connect-Entra
+        Write-Progress -Activity "Setting User Profile Pics" -Status "Connecting to Microsoft Graph"
+        Confirm-MgGraph -RequiredScopes "User.ReadWrite.All","Group.ReadWrite.All"
         }
 
     # Get all user profiles
@@ -1262,7 +1287,6 @@ Function Set-ProfilePhotos
 
 Function Export-EntraSigninReport
     {
-    #Requires -Modules Microsoft.Entra
     <#
     .Synopsis
     Exports Microsoft Entra for Sign-in Logs for a user account to a csv
@@ -1330,7 +1354,7 @@ Function Export-EntraSigninReport
         return [string]$NewDate
         }
 
-    Connect-entra -scopes 'AuditLog.Read.All','Directory.Read.All' -NoWelcome
+    Confirm-MgGraph -RequiredScopes 'AuditLog.Read.All','Directory.Read.All'
 
     try
 
@@ -1370,7 +1394,7 @@ Function Export-EntraSigninReport
         }
         Write-Progress -Activity "Sign in logs" -Status "Fetching Entra Sign-in logs from $UTCStartDate to $UTCEndDate" -PercentComplete $PercentComplete
         try {
-            $logs += Get-EntraAuditSigninLog -Filter "userPrincipalName eq `'$userprincipalname`' and createdDateTime ge $UTCStartDate and createdDateTime le $UTCEndDate"
+            $logs = Get-MgAuditLogSignIn -Filter "userPrincipalName eq `'$userprincipalname`' and createdDateTime ge $UTCStartDate and createdDateTime le $UTCEndDate"
             $entralogs += $logs
             $StartDate = $TempEndDate
             }
