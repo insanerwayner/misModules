@@ -9,8 +9,8 @@ Function Confirm-MgGraph
     .DESCRIPTION
     The Confirm-MgGraph function checks for an active Microsoft Graph session
     by attempting to retrieve the current context via Get-MgContext. If no
-    active session is foundΓÇöor if the current session is missing any of the
-    specified OAuth scopesΓÇöit initiates a connection to Microsoft Graph using
+    active session is found or if the current session is missing any of the
+    specified OAuth scopes it initiates a connection to Microsoft Graph using
     Connect-MgGraph with the required scopes. This guarantees that subsequent
     Microsoft Graph operations have the necessary permissions.
 
