@@ -1350,7 +1350,13 @@ Function Export-EntraSigninReport
     Will get logs from March 1st, 2025 to 4PM today. 
 
     .EXAMPLE
-    Export-EntraSigninReport -Username wreeves -StartDate "February 9 07:00AM" -EndDate "March 1 5PM" -FilePath C:\temp\wreeves_export.csv
+    Export-EntraSigninReport -Username wreeves -StartDate "2025-03-01 07:00AM" -EndDate "2025-03-05"
+
+    Description:
+    Will get logs from 7AM March 1st, 2025 to 0 hour of 2025-03-05. Which means that you won't get logs for the day of the 5th, but you will get until the end of the 4th. PowerShell dates without a time default to 12:00AM.   
+
+    .EXAMPLE
+    Export-EntraSigninReport -Username wreeves -StartDate "7:00AM February 9" -EndDate "5PM March 1" -FilePath C:\temp\wreeves_export.csv
 
     Description:
     Will get logs from February 9th at 7AM to March 1st at 5PM and output the csv file to c:\temp\wreeves_export.csv
