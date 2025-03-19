@@ -1404,7 +1404,7 @@ Function Export-EntraSigninReport
 
     try
         {
-        $userprincipalname = (Get-ADUser $Username).userprincipalname
+        $UserPrincipalName = (Get-ADUser $Username).userprincipalname
         }
     catch
         {
@@ -1421,12 +1421,15 @@ Function Export-EntraSigninReport
         }
 
     $TotalDays = ($EndDate - $StartDate).days + 1
+    $ChunkDays = 7
     $count = 0
+    $total_failure = $true
     $entralogs = @()
-    while ( $StartDate -lt $EndDate )
+    while ( $StartDate -lt $EndDate -and $null -eq $abort )
         {
-        $PercentComplete = ( ( $count * 7 ) / $TotalDays ) * 100
-        $TempEndDate = $StartDate.adddays(7)
+        $logs = $null
+        $PercentComplete = ( ( $count * $ChunkDays ) / $TotalDays ) * 100
+        $TempEndDate = $StartDate.adddays($ChunkDays)
         [string]$UTCStartDate = Convert-ToUTC -Date $StartDate
         if ( $TempEndDate -gt $EndDate )
         {
@@ -1437,27 +1440,56 @@ Function Export-EntraSigninReport
         [string]$UTCEndDate = Convert-ToUTC -Date $TempEndDate
         }
         Write-Progress -Activity "Sign in logs" -Status "Fetching Entra Sign-in logs from $UTCStartDate to $UTCEndDate" -PercentComplete $PercentComplete
-        try {
-            $logs = Get-MgAuditLogSignIn -Filter "userPrincipalName eq `'$userprincipalname`' and createdDateTime ge $UTCStartDate and createdDateTime le $UTCEndDate"
-            $entralogs += $logs
-            $StartDate = $TempEndDate
-            }
-        catch
+        $tries = 1
+        $success = $false
+        while ( $tries -le 3 -and $success -eq $false )
             {
-            Write-Error "Failed to retrieve logs for period $UTCSTartDate to $UTCEndDate. Aborting"
-            throw
+            try {
+                $logs = Get-EntraSigninLogs -UserPrincipalName $UserPrincipalName -UTCStartDate $UTCStartDate -UTCEndDate $UTCEndDate
+                $success = $true
+                $total_failure = $false
+                }
+            catch
+                {
+                if ( $count -eq 0 )
+                    {
+                    $abort = $true 
+                    }
+                $tries++
+                if ( $tries -le 3 ) 
+                    {
+                    Write-Error "Failed to retrieve logs for period $UTCSTartDate to $UTCEndDate `nWill attempt to fetch again in 3 seconds."
+                    Start-Sleep -Seconds 3
+                    Write-Progress -Activity "Sign in logs" -Status "Attempt $tries/3 of Fetching Entra Sign-in logs from $UTCStartDate to $UTCEndDate" -PercentComplete $PercentComplete
+                    }
+                else
+                    {
+                    Write-Error "Aborted Fetch of Entra Sign-in logs from $UTCStartDate to $UTCEndDate"
+                    }
+                }
             }
+        Remove-Variable tries
+        $entralogs += $logs
+        $StartDate = $TempEndDate
+        Start-Sleep -Seconds 1
         $count++
         }
 
-    Write-Progress -Activity "Sign in logs" -Status "Writing CSV"
-    $entralogs | Select-Object `
-        @{e={(Convert-ToCurrentTZ -Date $_.createddatetime)};label="DateTime"},
-        AppDisplayName,
-        clientAppUsed,
-        ipAddress,
-        @{label="Location";e={"$($_.location.City), $($_.location.State), $($_.Location.CountryorRegion)"}},
-        @{label="DeviceName";e={$_.DeviceDetail.DisplayName}},
-        @{label="OperatingSystem";e={$_.DeviceDetail.OperatingSystem}} | Sort-Object DateTime | Export-csv $CSVFile
-    Write-Host "Report written to $CSVFile" -ForegroundColor Yellow
+    if ( $total_failure -eq $false )
+        {
+        Write-Progress -Activity "Sign in logs" -Status "Writing CSV"
+        $entralogs | Select-Object `
+            @{e={(Convert-ToCurrentTZ -Date $_.createddatetime)};label="DateTime"},
+            AppDisplayName,
+            clientAppUsed,
+            ipAddress,
+            @{label="Location";e={"$($_.location.City), $($_.location.State), $($_.Location.CountryorRegion)"}},
+            @{label="DeviceName";e={$_.DeviceDetail.DisplayName}},
+            @{label="OperatingSystem";e={$_.DeviceDetail.OperatingSystem}} | Sort-Object DateTime | Export-csv $CSVFile
+        Write-Host "Report written to $CSVFile" -ForegroundColor Yellow
+        }
+    else
+        {
+        Write-Error "No attempts to fetch the logs were successful. Operation aborted."
+        }
     }
