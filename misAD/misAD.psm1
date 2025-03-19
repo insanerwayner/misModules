@@ -1391,7 +1391,16 @@ Function Export-EntraSigninReport
         return [string]$NewDate
         }
 
-    Confirm-MgGraph -RequiredScopes 'AuditLog.Read.All','Directory.Read.All'
+    Function Get-EntraSigninLogs
+        {
+        param(
+        $UserPrincipalName,
+        $UTCStartDate,
+        $UTCEndDate
+        )
+        Confirm-MgGraph -RequiredScopes 'AuditLog.Read.All','Directory.Read.All'
+        Get-MgAuditLogSignIn -Filter "userPrincipalName eq `'$UserPrincipalName`' and createdDateTime ge $UTCStartDate and createdDateTime le $UTCEndDate" -ErrorAction 'Stop' -ErrorVariable EntraError
+        }
 
     try
         {
