@@ -1,4 +1,4 @@
-﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users, Microsoft.Graph.Authentication
+﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users, Microsoft.Graph.Authentication, Microsoft.Graph.Reports
 
 Function Confirm-MgGraph 
     {
