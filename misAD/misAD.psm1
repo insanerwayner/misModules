@@ -1,65 +1,82 @@
-﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users
+﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users, Microsoft.Graph.Authentication
 
-Function Confirm-MgGraph
+Function Confirm-MgGraph 
     {
     <#
     .SYNOPSIS
     Ensures an active Microsoft Graph session with the required scopes.
 
     .DESCRIPTION
-    The Confirm-MgGraph function checks for an active Microsoft Graph session
-    by attempting to retrieve the current context via Get-MgContext. If no
-    active session is found or if the current session is missing any of the
-    specified OAuth scopes it initiates a connection to Microsoft Graph using
-    Connect-MgGraph with the required scopes. This guarantees that subsequent
-    Microsoft Graph operations have the necessary permissions.
+    This function checks for an active Graph session by calling Get-MgContext. If no session is found,
+    or if the session is missing any required OAuth scopes, it attempts to connect (or reconnect)
+    using Connect-MgGraph with the specified scopes. If the connection fails, it provides a clear error
+    message indicating what is required.
 
     .PARAMETER RequiredScopes
-    An array of required OAuth scopes for the session. The default value is
-    @("AuditLog.Read.All", "Directory.Read.All"). If the current session does
-    not include all of these scopes, the function will request additional
-    consent by reconnecting with Connect-MgGraph.
+    An array of required OAuth scopes for the session. Defaults to @("AuditLog.Read.All", "Directory.Read.All").
+    If the current session lacks any of these, the function will attempt to request additional consent.
 
     .EXAMPLE
     Confirm-MgGraph
-    Checks for an active Graph session with the default scopes. If none exists
-    or if any required scopes are missing, it connects using the defaults.
+    Checks for an active Graph session with the default scopes; if none exists or if any required scopes
+    are missing, it connects using the defaults.
 
     .EXAMPLE
-    Confirm-MgGraph -RequiredScopes "User.ReadWrite.All", "Group.ReadWrite.All"
-    Checks for an active Graph session with the specified scopes. If the
-    session lacks any of these scopes, it will prompt for additional consent.
+    Confirm-MgGraph -RequiredScopes @("User.ReadWrite.All", "Group.ReadWrite.All")
+    Checks for an active Graph session with the specified scopes and requests additional consent if needed.
 
     .NOTES
-    - Requires the Microsoft.Graph.Authentication module to be imported.
+    Requires the Microsoft.Graph module. If connection fails, ensure that the module is installed and that
+    you have consented to the required scopes.
     #>
     param(
         [string[]]$RequiredScopes = @("AuditLog.Read.All", "Directory.Read.All")
     )
-    try
-        {
+    
+    try {
         $ctx = Get-MgContext -ErrorAction Stop
         }
-    catch
+    catch 
         {
+        $errorMessage = $_.Exception.Message
+        Write-Error "Error retrieving Graph context: $errorMessage. Please ensure the Microsoft.Graph module is installed and that you have network connectivity."
         $ctx = $null
         }
-
-    if ( -not $ctx )
+    
+    if (-not $ctx)
         {
-        Write-Host "No active Graph session found. Connecting with scopes: $($RequiredScopes -join ', ')"
-        Connect-MgGraph -Scopes $RequiredScopes -NoWelcome
+        Write-Host "No active Graph session found. Attempting to connect with scopes: $($RequiredScopes -join ', ')"
+        try 
+            {
+            Connect-MgGraph -Scopes $RequiredScopes -NoWelcome -ErrorAction Stop
+            }
+        catch 
+            {
+            $connectError = $_.Exception.Message
+            Write-Error "Failed to connect to Microsoft Graph. Please ensure that the Microsoft.Graph module is installed and that your account has consented to the following scopes: $($RequiredScopes -join ', '). Error: $connectError"
+            throw
+            }
         }
     else
         {
         $missingScopes = $RequiredScopes | Where-Object { $ctx.Scopes -notcontains $_ }
-        if ( $missingScopes )
+        if ($missingScopes) 
             {
             Write-Host "Missing scopes: $($missingScopes -join ', '). Requesting additional consent..."
-            Connect-MgGraph -Scopes $RequiredScopes -NoWelcome
+            try 
+                {
+                Connect-MgGraph -Scopes $RequiredScopes -NoWelcome -ErrorAction Stop
+                }
+            catch 
+                {
+                $reconnectError = $_.Exception.Message
+                Write-Error "Failed to update the Microsoft Graph connection with the required scopes. Please ensure that your account has consented to: $($RequiredScopes -join ', '). Error: $reconnectError"
+                throw
+                }
             }
         }
     }
+
 
 Function Find-ADComputer
     {
