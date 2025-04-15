@@ -910,24 +910,24 @@ Function New-LPSUser
 	    $groups = (Get-ADUser $Template -Properties memberof).memberof
 	    $groups | Where-Object { $_ -notmatch $LicenseGroup} | Get-ADGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
 	    if ( $Mailbox )
-		{
-		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
-		Get-ADGroup $LicenseGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
-		Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
-		Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server dom01
-		}
-	    #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
-	    Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
-	    $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
-	    Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server dom01
-	    Write-Progress -Activity $Activity -CurrentOperation "Setting ScriptPath based on $($Template)"
-	    $ScriptPath = (Get-ADUser $Template -Properties ScriptPath).ScriptPath
-	    Set-ADUser $alias -ScriptPath $ScriptPath -Server dom01
+            {
+            Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
+            Get-ADGroup $LicenseGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
+            Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
+            Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server dom01
+            }
+            #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
+            Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
+            $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
+            Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server dom01
+            Write-Progress -Activity $Activity -CurrentOperation "Setting ScriptPath based on $($Template)"
+            $ScriptPath = (Get-ADUser $Template -Properties ScriptPath).ScriptPath
+            Set-ADUser $alias -ScriptPath $ScriptPath -Server dom01
 	    If ( $HomeDirectory )
-		{
-		Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
-		Set-HomeDirectory -alias $alias -Department $Department -Office $Office
-		}
+            {
+            Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
+            Set-HomeDirectory -alias $alias -Department $Department -Office $Office
+            }
 	    Else    
             {
             $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
