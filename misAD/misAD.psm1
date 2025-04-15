@@ -1,4 +1,83 @@
-﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users
+﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users, Microsoft.Graph.Authentication, Microsoft.Graph.Reports
+
+Function Confirm-MgGraph 
+    {
+    <#
+    .SYNOPSIS
+    Ensures an active Microsoft Graph session with the required scopes.
+
+    .DESCRIPTION
+    This function checks for an active Graph session by calling Get-MgContext. If no session is found,
+    or if the session is missing any required OAuth scopes, it attempts to connect (or reconnect)
+    using Connect-MgGraph with the specified scopes. If the connection fails, it provides a clear error
+    message indicating what is required.
+
+    .PARAMETER RequiredScopes
+    An array of required OAuth scopes for the session. Defaults to @("AuditLog.Read.All", "Directory.Read.All").
+    If the current session lacks any of these, the function will attempt to request additional consent.
+
+    .EXAMPLE
+    Confirm-MgGraph
+    Checks for an active Graph session with the default scopes; if none exists or if any required scopes
+    are missing, it connects using the defaults.
+
+    .EXAMPLE
+    Confirm-MgGraph -RequiredScopes @("User.ReadWrite.All", "Group.ReadWrite.All")
+    Checks for an active Graph session with the specified scopes and requests additional consent if needed.
+
+    .NOTES
+    Requires the Microsoft.Graph module. If connection fails, ensure that the module is installed and that
+    you have consented to the required scopes.
+    #>
+    param(
+        [string[]]$RequiredScopes = @("AuditLog.Read.All", "Directory.Read.All")
+    )
+    
+    try {
+        $ctx = Get-MgContext -ErrorAction Stop
+        }
+    catch 
+        {
+        $errorMessage = $_.Exception.Message
+        Write-Error "Error retrieving Graph context: $errorMessage. Please ensure the Microsoft.Graph module is installed and that you have network connectivity."
+        $ctx = $null
+        }
+    
+    if (-not $ctx)
+        {
+        Write-Host "No active Graph session found. Attempting to connect with scopes: $($RequiredScopes -join ', ')"
+        try 
+            {
+            Connect-MgGraph -Scopes $RequiredScopes -NoWelcome -ErrorAction Stop
+            }
+        catch 
+            {
+            $connectError = $_.Exception.Message
+            Write-Error "Failed to connect to Microsoft Graph. Please ensure that the Microsoft.Graph module is installed and that your account has consented to the following scopes: $($RequiredScopes -join ', '). Error: $connectError"
+            throw
+            }
+        }
+    else
+        {
+        $missingScopes = $RequiredScopes | Where-Object { $ctx.Scopes -notcontains $_ }
+        if ($missingScopes) 
+            {
+            Write-Host "Missing scopes: $($missingScopes -join ', '). Requesting additional consent..."
+            try 
+                {
+                Connect-MgGraph -Scopes $RequiredScopes -NoWelcome -ErrorAction Stop
+                }
+            catch 
+                {
+                $reconnectError = $_.Exception.Message
+                Write-Error "Failed to update the Microsoft Graph connection with the required scopes. Please ensure that your account has consented to: $($RequiredScopes -join ', '). Error: $reconnectError"
+                throw
+                }
+            }
+        }
+    }
+
+
 Function Find-ADComputer
     {
     <#
@@ -1135,13 +1214,6 @@ Function Set-ProfilePhotos
 
     $EmployeeListFile = Join-Path $FolderPath "EmployeeList.csv"
 
-    Function Connect-Entra
-        {
-        Write-Progress -Activity "Setting User Profile Pics" -Status "Connecting to Microsoft Graph"
-        # Connect to MS Graph with correct permission
-        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All" -NoWelcome
-        }
-
     Function Get-WorkvivoUser
         {
         param(
@@ -1206,7 +1278,8 @@ Function Set-ProfilePhotos
 
     if ( "All", "Entra" -contains $Destination )
         {
-        Connect-Entra
+        Write-Progress -Activity "Setting User Profile Pics" -Status "Connecting to Microsoft Graph"
+        Confirm-MgGraph -RequiredScopes "User.ReadWrite.All","Group.ReadWrite.All"
         }
 
     # Get all user profiles
@@ -1257,5 +1330,183 @@ Function Set-ProfilePhotos
             {
             Write-Error "No match found for $employeeID"
             }
+        }
+    }
+
+Function Export-EntraSigninReport
+    {
+    <#
+    .Synopsis
+    Exports Microsoft Entra for Sign-in Logs for a user account to a csv
+
+    .DESCRIPTION
+    Queries Microsoft Entra for Sign-in Logs for a user account between the dates
+    specified and outputs to a csv file.
+
+    .NOTES   
+    Name: Export-EntraSigninReport
+    Author: Wayne Reeves
+    Version: 2025.03.14
+
+    .PARAMETER Username
+    Asset Tag of the Computer you are searching for
+
+    .PARAMETER StartDate
+    The date you want to start the query from
+
+    .PARAMETER EndDate
+    The date for the last log
+
+    .PARAMETER FilePath
+    Specify the file path and name for the report
+
+    .EXAMPLE
+    Export-EntraSigninReport -Username wreeves -StartDate "2025-03-01 07:00AM" -EndDate "4PM"
+
+    Description:
+    Will get logs from March 1st, 2025 to 4PM today. 
+
+    .EXAMPLE
+    Export-EntraSigninReport -Username wreeves -StartDate "2025-03-01 07:00AM" -EndDate "2025-03-05"
+
+    Description:
+    Will get logs from 7AM March 1st, 2025 to 0 hour of 2025-03-05. Which means that you won't get logs for the day of the 5th, but you will get until the end of the 4th. PowerShell dates without a time default to 12:00AM.   
+
+    .EXAMPLE
+    Export-EntraSigninReport -Username wreeves -StartDate "7:00AM February 9" -EndDate "5PM March 1" -FilePath C:\temp\wreeves_export.csv
+
+    Description:
+    Will get logs from February 9th at 7AM to March 1st at 5PM and output the csv file to c:\temp\wreeves_export.csv
+    #>
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory=$true)]
+        $Username,
+        [parameter(Mandatory=$true)]
+        [datetime]$StartDate,
+        [parameter(Mandatory=$true)]
+        [datetime]$EndDate,
+        $FilePath = (Join-Path $pwd.path "$Username.csv")
+    )
+
+    function Convert-ToUTC
+        {
+        param(
+        [datetime]$Date
+        )
+        $Date = $Date.ToUniversalTime()
+        Get-Date $Date -Format yyyy-MM-ddTHH:mm:ssZ
+        }
+
+    Function Convert-ToCurrentTZ
+        {
+        param(
+        [datetime]$Date
+        )
+        $NewDate = (Get-Date $Date.tostring("yyyy-MM-ddTHH:mm:ssZ") -UFormat "%F %R TZOffset:%Z").tostring().Replace("TZOffset:-05","CDT").Replace("TZOffset:-06","CST")
+        return [string]$NewDate
+        }
+
+    Function Get-EntraSigninLogs
+        {
+        param(
+        $UserPrincipalName,
+        $UTCStartDate,
+        $UTCEndDate
+        )
+        Confirm-MgGraph -RequiredScopes 'AuditLog.Read.All','Directory.Read.All'
+        Get-MgAuditLogSignIn -Filter "userPrincipalName eq `'$UserPrincipalName`' and createdDateTime ge $UTCStartDate and createdDateTime le $UTCEndDate" -ErrorAction 'Stop' -ErrorVariable EntraError
+        }
+
+    try
+        {
+        $UserPrincipalName = (Get-ADUser $Username).userprincipalname
+        }
+    catch
+        {
+        Write-Error "$Username not found"
+        throw
+        }
+
+    $CSVFile = $FilePath
+
+    if ( ((Get-Date) - $StartDate).days -ge 31 )
+        {   
+        $StartDate = (Get-Date).AddDays(-30)
+        Write-Host "StartDate is greater than maximum of 30 days from current date. `nSetting StartDate to $StartDate" -ForegroundColor Yellow
+        }
+
+    $TotalDays = ($EndDate - $StartDate).days + 1
+    $ChunkDays = 7
+    $count = 0
+    $total_failure = $true
+    $entralogs = @()
+    while ( $StartDate -lt $EndDate -and $null -eq $abort )
+        {
+        $logs = $null
+        $PercentComplete = ( ( $count * $ChunkDays ) / $TotalDays ) * 100
+        $TempEndDate = $StartDate.adddays($ChunkDays)
+        [string]$UTCStartDate = Convert-ToUTC -Date $StartDate
+        if ( $TempEndDate -gt $EndDate )
+        {
+        [string]$UTCEndDate = Convert-ToUTC -Date $EndDate
+        }
+        else
+        {
+        [string]$UTCEndDate = Convert-ToUTC -Date $TempEndDate
+        }
+        Write-Progress -Activity "Sign in logs" -Status "Fetching Entra Sign-in logs from $UTCStartDate to $UTCEndDate" -PercentComplete $PercentComplete
+        $tries = 1
+        $success = $false
+        while ( $tries -le 3 -and $success -eq $false )
+            {
+            try {
+                $logs = Get-EntraSigninLogs -UserPrincipalName $UserPrincipalName -UTCStartDate $UTCStartDate -UTCEndDate $UTCEndDate
+                $success = $true
+                $total_failure = $false
+                }
+            catch
+                {
+                if ( $count -eq 0 )
+                    {
+                    $abort = $true 
+                    }
+                $tries++
+                if ( $tries -le 3 ) 
+                    {
+                    Write-Error "Failed to retrieve logs for period $UTCSTartDate to $UTCEndDate `nWill attempt to fetch again in 3 seconds."
+                    Start-Sleep -Seconds 3
+                    Write-Progress -Activity "Sign in logs" -Status "Attempt $tries/3 of Fetching Entra Sign-in logs from $UTCStartDate to $UTCEndDate" -PercentComplete $PercentComplete
+                    }
+                else
+                    {
+                    Write-Error "Aborted Fetch of Entra Sign-in logs from $UTCStartDate to $UTCEndDate"
+                    }
+                }
+            }
+        Remove-Variable tries
+        $entralogs += $logs
+        $StartDate = $TempEndDate
+        Start-Sleep -Seconds 1
+        $count++
+        }
+
+    if ( $total_failure -eq $false )
+        {
+        Write-Progress -Activity "Sign in logs" -Status "Writing CSV"
+        $entralogs | Select-Object `
+            @{e={(Convert-ToCurrentTZ -Date $_.createddatetime)};label="DateTime"},
+            AppDisplayName,
+            clientAppUsed,
+            ipAddress,
+            @{label="Location";e={"$($_.location.City), $($_.location.State), $($_.Location.CountryorRegion)"}},
+            @{label="DeviceName";e={$_.DeviceDetail.DisplayName}},
+            @{label="OperatingSystem";e={$_.DeviceDetail.OperatingSystem}} | Sort-Object DateTime | Export-csv $CSVFile
+        Write-Host "Report written to $CSVFile" -ForegroundColor Yellow
+        }
+    else
+        {
+        Write-Error "No attempts to fetch the logs were successful. Operation aborted."
         }
     }
