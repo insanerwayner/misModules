@@ -1002,6 +1002,7 @@ Function New-LPSUsersFromCSV
     $UserObjects | Add-Member -MemberType NoteProperty -Name HomeDirectory
     $UserObjects | Add-Member -MemberType NoteProperty -Name Template
     $UserObjects | Add-Member -MemberType NoteProperty -Name Password
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Manager
     $UserObjects | Add-Member -MemberType NoteProperty -Name Error
     foreach ( $User in $Users)
         {
