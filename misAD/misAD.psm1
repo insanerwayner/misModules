@@ -717,28 +717,17 @@ Function New-LPSUser
     .PARAMETER EmployeeID
     The Payroll ID from HR.
 
-    .PARAMETER SendEmail 
-    True or False to send email template to yourself. ( Default True )
-    
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren 
 
     Description:
     Will create a new user and mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
-    An email template will be sent to you for sending on to staff.
 
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -Mailbox $False
 
     Description:
     Will create a new user without a mailbox for "Bob S Cratchet." "mwarren" will be used as a template for Group Memberships. User will be disabled and hidden from Address Book.
-    An email template will be sent to you for sending on to staff.
-
-    .EXAMPLE
-    New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren
-
-    Description:
-    Specify to not send an email template to you.
 
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren -HomeDirectory $False -Enabled $True 
@@ -772,8 +761,7 @@ Function New-LPSUser
         [bool]$HomeDirectory=$True, 
         [bool]$Enabled=$False, 
 	[bool]$Mailbox=$True,
-	[string]$LicenseGroup='E3 Simple Licenses',
-        [bool]$SendEmail=$True
+	[string]$LicenseGroup='E3 Simple Licenses'
         )
     #User Variables
     $alias = $FirstN.toLower().substring(0,1)+$LastN.tolower().replace("-","").replace(" ","")
@@ -865,32 +853,6 @@ Function New-LPSUser
                 }
         }
     
-    Function Send-Email($DisplayName, $Alias)
-        {
-        $MISCreatorEmail = $ENV:username + "@lifepathsystems.org"
-        $Subject = "Login information for new staff $($DisplayName)"
-        $Body = @"
-<p>Here is the login information for your new staff member:</p>
-
-<p>
-Computer login ID: <b>$($Alias)</b>
-<br>
-Computer temporary password: <b>$($UnencryptedPassword)</b>
-</p>  
-
-<p>Anasazi staff IDs:</p>
-</p>
-"@
-        Send-MailMessage `
-            -From "New LPS User <noreply@newlpsuser.org>" `
-            -To $MISCreatorEmail `
-            -Subject $Subject `
-            -BodyAsHTML $Body `
-            -SMTPServer "misexch01.ccmhmr.local"
-        
-        Write-Host "Sending Email to $($MISCreatorEmail)"
-        }
-    
     #Write-Host "Checking if username already exists" -ForegroundColor Yellow
     Write-Progress -Activity $Activity -CurrentOperation "Checking if username already exists" 
     
@@ -948,34 +910,29 @@ Computer temporary password: <b>$($UnencryptedPassword)</b>
 	    $groups = (Get-ADUser $Template -Properties memberof).memberof
 	    $groups | Where-Object { $_ -notmatch $LicenseGroup} | Get-ADGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
 	    if ( $Mailbox )
-		{
-		Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
-		Get-ADGroup $LicenseGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
-		Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
-		Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server dom01
-		}
-	    #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
-	    Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
-	    $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
-	    Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server dom01
-	    Write-Progress -Activity $Activity -CurrentOperation "Setting ScriptPath based on $($Template)"
-	    $ScriptPath = (Get-ADUser $Template -Properties ScriptPath).ScriptPath
-	    Set-ADUser $alias -ScriptPath $ScriptPath -Server dom01
+            {
+            Write-Progress -Activity $Activity -CurrentOperation "Adding Membership to $LicenseGroup"
+            Get-ADGroup $LicenseGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
+            Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
+            Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server dom01
+            }
+            #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
+            Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
+            $logonHours = (Get-ADUser $Template -Properties logonHours).logonHours
+            Set-ADUser $alias -Replace @{logonhours = $logonHours} -Server dom01
+            Write-Progress -Activity $Activity -CurrentOperation "Setting ScriptPath based on $($Template)"
+            $ScriptPath = (Get-ADUser $Template -Properties ScriptPath).ScriptPath
+            Set-ADUser $alias -ScriptPath $ScriptPath -Server dom01
 	    If ( $HomeDirectory )
-		{
-		Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
-		Set-HomeDirectory -alias $alias -Department $Department -Office $Office
-		}
+            {
+            Write-Progress -Activity $Activity -CurrentOperation "HomeDirectory"
+            Set-HomeDirectory -alias $alias -Department $Department -Office $Office
+            }
 	    Else    
-		{
-		$UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
-		Write-Progress -Activity $Activity -Completed
-		}
-
-	    If ( $SendEmail )
-		{
-		Send-Email -DisplayName $UserObject.DisplayName -Alias $UserObject.alias
-		}
+            {
+            $UserObject | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value "None"
+            Write-Progress -Activity $Activity -Completed
+            }
 	    }
 	catch
 	    {
@@ -1005,20 +962,11 @@ Function New-LPSUsersFromCSV
     .PARAMETER Path
     Either the Path to the CSV File you are pulling from or if you are in the current directory just the name of the file.
 
-    .PARAMETER SendEmail
-    True or Fasle to specifies to send email template. ( Default True )
-
     .EXAMPLE
     New-LPSUsersFromCSV -Path "New Users.csv"
 
     Description:
     In this example you are already in the current directory that the CSV File resides. It will pull in the information and create each user specified
-
-    .EXAMPLE
-    New-LPSUsersFromCSV -Path "New Users.csv" -SendEmail:$False
-
-    Description:
-    In this example you are telling the script to not send you an email template for each user.
 
     .EXAMPLE
     New-LPSUsersFromCSV -Path "C:\Users\jdoe\Desktop\New Users.csv"
@@ -1029,8 +977,7 @@ Function New-LPSUsersFromCSV
     [cmdletBinding()]
     Param(
 	[Parameter(Mandatory)]
-        [string]$Path,
-        [bool]$SendEmail=$True
+        [string]$Path
     )
     $Users = Import-CSV $Path
     $UserObjects = New-Object System.Collections.ArrayList
@@ -1050,10 +997,6 @@ Function New-LPSUsersFromCSV
         if ( $User.Enabled )
             {
             $User.Enabled = [bool]::Parse($User.Enabled)
-            }
-        if ( !$SendEmail )
-            {
-            $User | Add-Member -Type NoteProperty -Name SendEmail -Value $False
             }
         $User.psobject.properties | ForEach-Object { $splat[$_.Name] = $_.Value }
         $UserObject = New-LPSUser @splat
