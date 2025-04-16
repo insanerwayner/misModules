@@ -717,6 +717,9 @@ Function New-LPSUser
     .PARAMETER EmployeeID
     The Payroll ID from HR.
 
+    .PARAMETER Manager
+    The SamAccountName of the Manager
+
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren 
 
@@ -756,6 +759,8 @@ Function New-LPSUser
         [string]$Department, 
 	[Parameter(Mandatory)]
         [string]$EmployeeID,
+	[Parameter(Mandatory)]
+        [string]$Manager,
 	[Parameter(Mandatory)]
         [string]$Template, 
         [bool]$HomeDirectory=$True, 
@@ -903,6 +908,17 @@ Function New-LPSUser
 	    {
 	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttributes @{'msExchHideFromAddressLists'=$HideInAddressBook; 'EmployeeID'=$EmployeeID} -Server dom01 -ErrorAction stop | Out-Null
 	    Set-ADuser -Identity $alias -ChangePasswordAtLogon $True -Server dom01
+        try
+            {
+            $ManagerName =  (Get-ADUser $Manager -ErrorAction SilentlyContinue).DisplayName
+            Set-ADuser -Identity $alias -Manager $Manager -Server dom01
+            }
+        catch
+            {
+            Write-Host "Manager doesn't exist in Active Directory. Not setting the Manager property"
+            $ManagerName = ""
+            }
+        $UserObject | Add-Member -MemberType NoteProperty -Name Manager -Value $ManagerName
 	    #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
@@ -941,7 +957,7 @@ Function New-LPSUser
 	    sleep 5
 	    }
         Return $UserObject
-	Write-Progress -Activity $Activity -Completed
+        Write-Progress -Activity $Activity -Completed
         }
     }
 
