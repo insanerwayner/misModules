@@ -975,7 +975,7 @@ Function New-LPSUsersFromCSV
     Author: Wayne Reeves
     Version: 11.29.17
 
-    .PARAMETER Path
+    .PARAMETER FilePath
     Either the Path to the CSV File you are pulling from or if you are in the current directory just the name of the file.
 
     .EXAMPLE
@@ -993,9 +993,13 @@ Function New-LPSUsersFromCSV
     [cmdletBinding()]
     Param(
 	[Parameter(Mandatory)]
-        [string]$Path
+        [System.IO.FileInfo]$FilePath,
+    [Parameter(ParameterSet = "NEOFileOutput")]
+        [System.IO.DirectoryInfo]$OutputDirectory = ( Split-Path (Resolve-Path $FilePath) -Parent ),
+    [Parameter(ParameterSet = "NEOFileOutput")]
+        [switch]$NEOFileOutput
     )
-    $Users = Import-CSV $Path
+    $Users = Import-CSV $FilePath
     $UserObjects = New-Object System.Collections.ArrayList
     $UserObjects | Add-Member -MemberType NoteProperty -Name DisplayName
     $UserObjects | Add-Member -MemberType NoteProperty -Name Alias
@@ -1020,7 +1024,23 @@ Function New-LPSUsersFromCSV
         $UserObjects.Add($UserObject) | Out-Null
         $splat = $null
         }
-    $UserObjects
+    if ( $PSCmdlet.ParameterSetName -eq "NEOFileOutput" )
+        {
+        if ( -not [string]$dirname -as [DateTime])
+            {
+            $date = Get-Date -Format yyyMMdd
+            }
+        $neocsv = Join-Path $OutputDirectory.FullName "neo$($date).csv"
+        if ( Test-Path -LiteralPath $neocsv -PathType Leaf )
+            {
+            Write-Warning "Appending to existing file."
+            }
+        $UserObjects | Tee-Object | Select-Object -ExcludeProperty Password | Export-Csv -Path $neocsv -Append -Verbose
+        }
+    else 
+        {
+        $UserObjects
+        }
     Get-NextADSync
     }
 
