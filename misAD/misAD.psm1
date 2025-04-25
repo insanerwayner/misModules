@@ -963,41 +963,60 @@ Function New-LPSUser
 
 Function New-LPSUsersFromCSV
     {
-    <#
-    .Synopsis
-    Creates LifePath Users from CSV File
+	<#
+	.SYNOPSIS
+	Creates LifePath users from a CSV file.
 
-    .DESCRIPTION
-    Creates LifePath Users from CSV File by utilizing the New-LPSUser cmdlette
+	.DESCRIPTION
+	This function reads a CSV file containing user information and creates new users in Active Directory. It utilizes the `New-LPSUser` cmdlet for user creation and can handle the creation of users, their group memberships, and other attributes based on a specified template. 
 
-    .NOTES   
-    Name: New-LPSUsersFromCSV
-    Author: Wayne Reeves
-    Version: 11.29.17
+	The function supports two output modes:
+	1. Standard output, where user creation details are returned to the console.
+	2. Output to a timestamped NEO file (default), where user creation details are exported to a CSV file.
 
-    .PARAMETER FilePath
-    Either the Path to the CSV File you are pulling from or if you are in the current directory just the name of the file.
+	The CSV file should include columns like:
+	- First Name
+	- Last Name
+	- Employee ID
+	- Department
+	- Manager
+	- Enabled (Optional)
+	- Mailbox (Optional)
+	- HomeDirectory (Optional)
 
-    .EXAMPLE
-    New-LPSUsersFromCSV -Path "New Users.csv"
+	If the `NoOutputFile` parameter is specified, the output will not be written to a file. If not specified, the default behavior is to output to a timestamped CSV file.
 
-    Description:
-    In this example you are already in the current directory that the CSV File resides. It will pull in the information and create each user specified
+	.PARAMETER FilePath
+	The path to the CSV file containing user data. The CSV file should have the necessary columns (`First Name`, `Last Name`, `Employee ID`, `Department`, etc.).
 
-    .EXAMPLE
-    New-LPSUsersFromCSV -Path "C:\Users\jdoe\Desktop\New Users.csv"
+	.PARAMETER OutputDirectory
+	(Optional) The directory where output files will be saved. If the `NoOutputFile` parameter is not used, this defines the folder for the CSV export. If not specified, the output file will be saved in the same directory as the input CSV.
 
-    Description:
-    In this example you are explicitely setting the Full Path to the file. It will pull in the information and create each user specified
-    #>
+	.PARAMETER NoOutputFile
+	(Optional) If specified, the function will **not** export the user creation details to a file and will output to the console instead.
+
+	.EXAMPLE
+	New-LPSUsersFromCSV -FilePath "C:\Users\admin\Desktop\New Users.csv"
+	Creates users based on the data in "New Users.csv" and exports the details to a timestamped CSV file (default behavior).
+
+	.EXAMPLE
+	New-LPSUsersFromCSV -FilePath "C:\Users\admin\Desktop\New Users.csv" -NoOutputFile
+	Creates users from "New Users.csv" and outputs user creation details to the console without exporting to a file.
+
+	.EXAMPLE
+	New-LPSUsersFromCSV -FilePath "C:\Users\admin\Desktop\New Users.csv" -OutputDirectory "C:\Temp" -NoOutputFile
+	Creates users from "New Users.csv" and outputs user creation details to the console without exporting to a file.
+
+	.NOTES
+	Author: Wayne Reeves
+	The function requires the `New-LPSUser` cmdlet to create the users and assumes the presence of the appropriate templates for group memberships.
+	#>
     [cmdletBinding()]
     Param(
 	[Parameter(Mandatory)]
         [System.IO.FileInfo]$FilePath,
-    [Parameter(ParameterSet = "NEOFileOutput")]
         [System.IO.DirectoryInfo]$OutputDirectory = ( Split-Path (Resolve-Path $FilePath) -Parent ),
-    [Parameter(ParameterSet = "NEOFileOutput")]
-        [switch]$NEOFileOutput
+        [switch]$NoOutputFile
     )
     $Users = Import-CSV $FilePath
     $UserObjects = New-Object System.Collections.ArrayList
@@ -1011,22 +1030,20 @@ Function New-LPSUsersFromCSV
     foreach ( $User in $Users)
         {
         $splat = @{}
-	if ( $User.Mailbox )
-	    {
-	    $User.Mailbox = [bool]::Parse($User.Mailbox)
-	    }
-        if ( $User.Enabled )
-            {
-            $User.Enabled = [bool]::Parse($User.Enabled)
-            }
-        $User.psobject.properties | ForEach-Object { $splat[$_.Name] = $_.Value }
-        $UserObject = New-LPSUser @splat
-        $UserObjects.Add($UserObject) | Out-Null
-        $splat = $null
-        }
-    if ( $PSCmdlet.ParameterSetName -eq "NEOFileOutput" )
+	if ( $User.Mailbox ) { $User.Mailbox = [bool]::Parse($User.Mailbox) }
+    if ( $User.Enabled ) { $User.Enabled = [bool]::Parse($User.Enabled) }
+    $User.psobject.properties | ForEach-Object { $splat[$_.Name] = $_.Value }
+    $UserObject = New-LPSUser @splat
+    $UserObjects.Add($UserObject) | Out-Null
+    $splat = $null
+    }
+    if ( $NoOutPutFile )
         {
-        if ( -not [string]$dirname -as [DateTime])
+        $UserObjects
+        }
+    else 
+        {
+        if ( -not [string]$dirname -as [DateTime] )
             {
             $date = Get-Date -Format yyyMMdd
             }
@@ -1036,10 +1053,6 @@ Function New-LPSUsersFromCSV
             Write-Warning "Appending to existing file."
             }
         $UserObjects | Tee-Object | Select-Object -ExcludeProperty Password | Export-Csv -Path $neocsv -Append -Verbose
-        }
-    else 
-        {
-        $UserObjects
         }
     Get-NextADSync
     }
