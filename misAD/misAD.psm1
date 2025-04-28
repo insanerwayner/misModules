@@ -931,6 +931,7 @@ Function New-LPSUser
             Get-ADGroup $LicenseGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
             Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
             Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server dom01
+            $UserObject | Add-Member -MemberType NoteProperty -Name Email -Value $principal
             }
             #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
             Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
@@ -980,6 +981,7 @@ Function New-LPSUsersFromCSV
 	- Employee ID
 	- Department
 	- Manager
+	- Template
 	- Enabled (Optional)
 	- Mailbox (Optional)
 	- HomeDirectory (Optional)
@@ -1022,6 +1024,7 @@ Function New-LPSUsersFromCSV
     $UserObjects = New-Object System.Collections.ArrayList
     $UserObjects | Add-Member -MemberType NoteProperty -Name DisplayName
     $UserObjects | Add-Member -MemberType NoteProperty -Name Alias
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Email
     $UserObjects | Add-Member -MemberType NoteProperty -Name HomeDirectory
     $UserObjects | Add-Member -MemberType NoteProperty -Name Template
     $UserObjects | Add-Member -MemberType NoteProperty -Name Password
@@ -1032,27 +1035,34 @@ Function New-LPSUsersFromCSV
         $splat = @{}
 	if ( $User.Mailbox ) { $User.Mailbox = [bool]::Parse($User.Mailbox) }
     if ( $User.Enabled ) { $User.Enabled = [bool]::Parse($User.Enabled) }
-    $User.psobject.properties | ForEach-Object { $splat[$_.Name] = $_.Value }
+    $UserParameters = (Get-Command New-LPSUser).Parameters.Keys
+    $User.PSObject.Properties | 
+        Where-Object { $UserParameters -Contains $_.Name } | 
+            ForEach-Object { $splat[$_.Name] = $_.Value }
     $UserObject = New-LPSUser @splat
+    $User | Add-Member -MemberType NoteProperty -Name Alias -Value $UserObject.Alias
+    $User | Add-Member -MemberType NoteProperty -Name Email -Value $UserObject.Email
+    $User | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value $UserObject.HomeDirectory
     $UserObjects.Add($UserObject) | Out-Null
     $splat = $null
-    }
+        }
     if ( $NoOutPutFile )
         {
         $UserObjects
         }
     else 
         {
-        if ( -not [string]$dirname -as [DateTime] )
+        if ( -not [DateTime]::TryParse($OutputDirectory.name,[ref][DateTime]::MinValue) )
             {
             $date = Get-Date -Format yyyMMdd
             }
-        $neocsv = Join-Path $OutputDirectory.FullName "neo$($date).csv"
-        if ( Test-Path -LiteralPath $neocsv -PathType Leaf )
+        $OutputCSV = Join-Path $OutputDirectory.FullName "CreatedUsers$($date).csv"
+        if ( Test-Path -LiteralPath $OutputCSV -PathType Leaf )
             {
             Write-Warning "Appending to existing file."
             }
-        $UserObjects | Tee-Object | Select-Object -ExcludeProperty Password | Export-Csv -Path $neocsv -Append -Verbose
+        $UserObjects
+        $Users | Select-Object -ExcludeProperty Mailbox, Enabled | Export-Csv -Path $OutputCSV -Append -Verbose
         }
     Get-NextADSync
     }
