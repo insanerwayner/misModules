@@ -717,6 +717,9 @@ Function New-LPSUser
     .PARAMETER EmployeeID
     The Payroll ID from HR.
 
+    .PARAMETER Manager
+    The SamAccountName of the Manager
+
     .EXAMPLE
     New-LPSUser -FirstN Bob -MI S -LastN Cratchet -Title Hero -Office "BH McKinney" -Department BH -Template mwarren 
 
@@ -756,6 +759,8 @@ Function New-LPSUser
         [string]$Department, 
 	[Parameter(Mandatory)]
         [string]$EmployeeID,
+	[Parameter(Mandatory)]
+        [string]$Manager,
 	[Parameter(Mandatory)]
         [string]$Template, 
         [bool]$HomeDirectory=$True, 
@@ -903,6 +908,17 @@ Function New-LPSUser
 	    {
 	    New-ADUser -UserPrincipalName $principal -SamAccountName $alias -DisplayName $fulln -Name $fulln -GivenName $firstn -Surname $lastn -Title $Title -Description $Title -Department $Department -Office $Office -AccountPassword $Password -Enabled $Enabled -OtherAttributes @{'msExchHideFromAddressLists'=$HideInAddressBook; 'EmployeeID'=$EmployeeID} -Server dom01 -ErrorAction stop | Out-Null
 	    Set-ADuser -Identity $alias -ChangePasswordAtLogon $True -Server dom01
+        try
+            {
+            $ManagerName =  (Get-ADUser $Manager -ErrorAction SilentlyContinue).DisplayName
+            Set-ADuser -Identity $alias -Manager $Manager -Server dom01
+            }
+        catch
+            {
+            Write-Host "Manager doesn't exist in Active Directory. Not setting the Manager property"
+            $ManagerName = ""
+            }
+        $UserObject | Add-Member -MemberType NoteProperty -Name Manager -Value $ManagerName
 	    #Write-Host "Adding Group Memberships" -ForegroundColor Yellow
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Template -Value $Template
 	    $UserObject | Add-Member -MemberType NoteProperty -Name Password -Value $UnencryptedPassword
@@ -915,6 +931,7 @@ Function New-LPSUser
             Get-ADGroup $LicenseGroup -Server dom01 | Add-ADGroupMember -Members $alias -Server dom01
             Write-Progress -Activity $Activity -CurrentOperation 'Setting "EmailAddress" and "mail" property in AD'
             Set-ADUser -Identity $alias -EmailAddress $principal -Add @{proxyAddresses="SMTP:$alias@lifepathsystems.org", "smtp:$alias@lifepathsystems.mail.onmicrosoft.com", "smtp:$alias@lifepathsystems.onmicrosoft.com"; mailNickName="$alias"} -Server dom01
+            $UserObject | Add-Member -MemberType NoteProperty -Name Email -Value $principal
             }
             #Write-Host "Setting Logon Hours based on $($Template)" -ForegroundColor Yellow
             Write-Progress -Activity $Activity -CurrentOperation "Setting Logon Hours based on $($Template)"
@@ -941,69 +958,112 @@ Function New-LPSUser
 	    sleep 5
 	    }
         Return $UserObject
-	Write-Progress -Activity $Activity -Completed
+        Write-Progress -Activity $Activity -Completed
         }
     }
 
 Function New-LPSUsersFromCSV
     {
-    <#
-    .Synopsis
-    Creates LifePath Users from CSV File
+	<#
+	.SYNOPSIS
+	Creates LifePath users from a CSV file.
 
-    .DESCRIPTION
-    Creates LifePath Users from CSV File by utilizing the New-LPSUser cmdlette
+	.DESCRIPTION
+	This function reads a CSV file containing user information and creates new users in Active Directory. It utilizes the `New-LPSUser` cmdlet for user creation and can handle the creation of users, their group memberships, and other attributes based on a specified template. 
 
-    .NOTES   
-    Name: New-LPSUsersFromCSV
-    Author: Wayne Reeves
-    Version: 11.29.17
+	The function supports two output modes:
+	1. Standard output, where user creation details are returned to the console.
+	2. Output to a timestamped NEO file (default), where user creation details are exported to a CSV file.
 
-    .PARAMETER Path
-    Either the Path to the CSV File you are pulling from or if you are in the current directory just the name of the file.
+	The CSV file should include columns like:
+	- First Name
+	- Last Name
+	- Employee ID
+	- Department
+	- Manager
+	- Template
+	- Enabled (Optional)
+	- Mailbox (Optional)
+	- HomeDirectory (Optional)
 
-    .EXAMPLE
-    New-LPSUsersFromCSV -Path "New Users.csv"
+	If the `NoOutputFile` parameter is specified, the output will not be written to a file. If not specified, the default behavior is to output to a timestamped CSV file.
 
-    Description:
-    In this example you are already in the current directory that the CSV File resides. It will pull in the information and create each user specified
+	.PARAMETER FilePath
+	The path to the CSV file containing user data. The CSV file should have the necessary columns (`First Name`, `Last Name`, `Employee ID`, `Department`, etc.).
 
-    .EXAMPLE
-    New-LPSUsersFromCSV -Path "C:\Users\jdoe\Desktop\New Users.csv"
+	.PARAMETER OutputDirectory
+	(Optional) The directory where output files will be saved. If the `NoOutputFile` parameter is not used, this defines the folder for the CSV export. If not specified, the output file will be saved in the same directory as the input CSV.
 
-    Description:
-    In this example you are explicitely setting the Full Path to the file. It will pull in the information and create each user specified
-    #>
+	.PARAMETER NoOutputFile
+	(Optional) If specified, the function will **not** export the user creation details to a file and will output to the console instead.
+
+	.EXAMPLE
+	New-LPSUsersFromCSV -FilePath "C:\Users\admin\Desktop\New Users.csv"
+	Creates users based on the data in "New Users.csv" and exports the details to a timestamped CSV file (default behavior).
+
+	.EXAMPLE
+	New-LPSUsersFromCSV -FilePath "C:\Users\admin\Desktop\New Users.csv" -NoOutputFile
+	Creates users from "New Users.csv" and outputs user creation details to the console without exporting to a file.
+
+	.EXAMPLE
+	New-LPSUsersFromCSV -FilePath "C:\Users\admin\Desktop\New Users.csv" -OutputDirectory "C:\Temp" -NoOutputFile
+	Creates users from "New Users.csv" and outputs user creation details to the console without exporting to a file.
+
+	.NOTES
+	Author: Wayne Reeves
+	The function requires the `New-LPSUser` cmdlet to create the users and assumes the presence of the appropriate templates for group memberships.
+	#>
     [cmdletBinding()]
     Param(
 	[Parameter(Mandatory)]
-        [string]$Path
+        [System.IO.FileInfo]$FilePath,
+        [System.IO.DirectoryInfo]$OutputDirectory = ( Split-Path (Resolve-Path $FilePath) -Parent ),
+        [switch]$NoOutputFile
     )
-    $Users = Import-CSV $Path
+    $Users = Import-CSV $FilePath
     $UserObjects = New-Object System.Collections.ArrayList
     $UserObjects | Add-Member -MemberType NoteProperty -Name DisplayName
     $UserObjects | Add-Member -MemberType NoteProperty -Name Alias
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Email
     $UserObjects | Add-Member -MemberType NoteProperty -Name HomeDirectory
     $UserObjects | Add-Member -MemberType NoteProperty -Name Template
     $UserObjects | Add-Member -MemberType NoteProperty -Name Password
+    $UserObjects | Add-Member -MemberType NoteProperty -Name Manager
     $UserObjects | Add-Member -MemberType NoteProperty -Name Error
     foreach ( $User in $Users)
         {
         $splat = @{}
-	if ( $User.Mailbox )
-	    {
-	    $User.Mailbox = [bool]::Parse($User.Mailbox)
-	    }
-        if ( $User.Enabled )
-            {
-            $User.Enabled = [bool]::Parse($User.Enabled)
-            }
-        $User.psobject.properties | ForEach-Object { $splat[$_.Name] = $_.Value }
-        $UserObject = New-LPSUser @splat
-        $UserObjects.Add($UserObject) | Out-Null
-        $splat = $null
+	if ( $User.Mailbox ) { $User.Mailbox = [bool]::Parse($User.Mailbox) }
+    if ( $User.Enabled ) { $User.Enabled = [bool]::Parse($User.Enabled) }
+    $UserParameters = (Get-Command New-LPSUser).Parameters.Keys
+    $User.PSObject.Properties | 
+        Where-Object { $UserParameters -Contains $_.Name } | 
+            ForEach-Object { $splat[$_.Name] = $_.Value }
+    $UserObject = New-LPSUser @splat
+    $User | Add-Member -MemberType NoteProperty -Name Alias -Value $UserObject.Alias
+    $User | Add-Member -MemberType NoteProperty -Name Email -Value $UserObject.Email
+    $User | Add-Member -MemberType NoteProperty -Name HomeDirectory -Value $UserObject.HomeDirectory
+    $UserObjects.Add($UserObject) | Out-Null
+    $splat = $null
         }
-    $UserObjects
+    if ( $NoOutPutFile )
+        {
+        $UserObjects
+        }
+    else 
+        {
+        if ( -not [DateTime]::TryParse($OutputDirectory.name,[ref][DateTime]::MinValue) )
+            {
+            $date = Get-Date -Format yyyMMdd
+            }
+        $OutputCSV = Join-Path $OutputDirectory.FullName "CreatedUsers$($date).csv"
+        if ( Test-Path -LiteralPath $OutputCSV -PathType Leaf )
+            {
+            Write-Warning "Appending to existing file."
+            }
+        $UserObjects
+        $Users | Select-Object -ExcludeProperty Mailbox, Enabled | Export-Csv -Path $OutputCSV -Append -Verbose
+        }
     Get-NextADSync
     }
 
