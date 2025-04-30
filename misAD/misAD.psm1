@@ -1513,3 +1513,83 @@ Function Export-EntraSigninReport
         Write-Error "No attempts to fetch the logs were successful. Operation aborted."
         }
     }
+
+Function Export-NEOCredentials
+    {
+    <#
+    .SYNOPSIS
+    Exports temporary credentials for new employees and resets their passwords.
+
+    .DESCRIPTION
+    The Export-NEOCredentials function reads a CSV file containing new employee information, resets their passwords to temporary values, and generates an HTML report with the new credentials. This report can be printed for distribution to new hires during their orientation.
+
+    .PARAMETER FilePath
+    The path to the CSV file containing new employee information. The CSV should have columns for DisplayName and Alias.
+
+    .EXAMPLE
+    Export-NEOCredentials -FilePath CreatedUsers.csv
+
+    This example reads the specified CSV file, resets the passwords for the new hires listed in the file, and generates an HTML report with their temporary credentials.
+
+    .EXAMPLE
+    Export-NEOCredentials -FilePath "C:\Path\To\CreatedUsers.csv"
+
+    This example reads the specified CSV file, resets the passwords for the new hires listed in the file, and generates an HTML report with their temporary credentials.
+
+    .NOTES
+    Author: Wayne Reeves
+    #>
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [ValidateScript({Test-Path $_})]
+        [string]
+        $FilePath
+        )
+    
+    try
+        {
+        $UserInfo = Import-CSV $FilePath | Select-Object DisplayName, Alias
+        $html = @(
+            '<style>',
+            'table, tr, td {',
+            '    text-align: left;',
+            '}',
+            '</style>',
+            '<body>'
+            )
+
+        foreach ( $User in $UserInfo )
+            {
+            $User | Add-Member -MemberType NoteProperty -Name Password -Value (New-RandomPassword)
+            Set-ADAccountPassword -Identity $User.Alias -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $User.Password -Force) -server dom01
+            Set-ADUser -Identity $User.Alias -ChangePasswordAtLogon $True -Server dom01
+            $html += @(
+                "<h3>$($User.DisplayName)</h3>",
+                "<table>",
+                "<tr>",
+                "<td>Username:</td><th>$($User.alias)</th>",
+                "</tr>",
+                "<tr>",
+                "<td>Temporary Password:</td><th>$($User.Password)</th>",
+                "</tr>",
+                "</table>",
+                "<hr>"
+                )
+            }
+
+        $html += @(
+            '</body>',
+            '</html'
+            )
+        $htmlfile = New-Item Accounts.html -Force
+        $html | Out-File $htmlfile
+        Start-Process $htmlfile.Name -Wait | Out-Null
+        Remove-Item $htmlfile -Force
+        }
+
+    catch
+        {
+        Write-Error "An error occurred: $_"
+        }
+    }
