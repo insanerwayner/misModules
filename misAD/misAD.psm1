@@ -1593,3 +1593,109 @@ Function Export-NEOCredentials
         Write-Error "An error occurred: $_"
         }
     }
+
+Function Set-LPSUserStatus
+    {
+    <#
+    .SYNOPSIS
+    Disable, hold, terminate, or restore an AD user in one unified workflow.
+
+    .DESCRIPTION
+    Centralizes our leave and off-boarding/on-boarding processes in a single function.
+
+    .PARAMETER SamAccountName
+    The user's sAMAccountName (or Name).  
+    Accepts pipeline input by value (string) or by property name (ADUser.SamAccountName).  
+    Alias: **Identity**.
+
+    .PARAMETER FMLA
+    Switch to place the user on FMLA hold:
+    - Disables the account  
+    - Adds to the "FMLA Users" group
+
+    .PARAMETER Terminated
+    Switch to terminate the user:
+    - Disables the account  
+    - Adds to the "Terminated Users" group  
+    - Hides from the Exchange address lists  
+    - Sets `AccountExpirationDate = $DateTerminated + 90 days`
+
+    .PARAMETER Return
+    Switch to restore a previously held or terminated user:
+    - Enables the account  
+    - Clears address-list hiding  
+    - Removes from both "FMLA Users" and "Terminated Users" groups  
+    - Clears any `AccountExpirationDate`
+
+    .PARAMETER DateTerminated
+    The base date for the 90-day expiration stamp when `-Terminated` is used.  
+    Defaults to `(Get-Date)` if omitted.
+
+    .EXAMPLE
+    # Put a single user on FMLA hold:
+    Set-LpsUserStatus 'jdoe' -FMLA
+
+    .EXAMPLE
+    # Terminate multiple users from the pipeline:
+    'alice','bob' | Set-LpsUserStatus -Terminated
+
+    .EXAMPLE
+    # Terminate a user and back-date the termination marker:
+    Set-LpsUserStatus -Identity 'cwilson' -Terminated -DateTerminated 2025-04-01
+
+    .EXAMPLE
+    # Return everyone in the "FMLA Users" group to active status:
+    Get-ADGroupMember "FMLA Users" | Set-LpsUserStatus -Return
+
+    .NOTES
+    Author: Wayne Reeves  
+    Created: 2025-05-02
+    #>
+    param(
+    [Parameter(
+        Mandatory,
+        Position = 0,
+        ValueFromPipeline
+        )]
+    [Alias('Identity')]
+    [string]$sAMAccountName,
+    [Parameter(Mandatory, ParameterSetName = "FMLA")]
+    [switch]$FMLA,
+    [Parameter(Mandatory, ParameterSetName = "Terminated")]
+    [switch]$Terminated,
+    [Parameter(Mandatory, ParameterSetName = "Return")]
+    [switch]$Return,
+    [Parameter(ParameterSetName = "Terminated")]
+    [DateTime]$DateTerminated =  (Get-Date)
+    )
+    process
+        {
+        $Identity = Get-ADUser -Identity $sAMAccountName -ErrorAction SilentlyContinue -Server dom01
+        if ( -not $Identity )
+            {
+            Write-Warning "Could not find user name $($Identity). Skipping."
+            return
+            }
+        if ( $PSCmdlet.ParameterSetName -ne "Return" )
+            {
+            Write-Host "Disabling and adding $($Identity.Name) to `"$($PSCmdlet.ParameterSetName) Users`" Security Group."
+            Disable-ADAccount -Identity $Identity -Server dom01 -WhatIf
+            Add-ADGroupMember -Identity "$($PSCmdlet.ParameterSetName) Users" -Members $Identity -WhatIf
+            if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
+                {
+                $Expiration = $DateTerminated.AddDays(90)
+                Write-Host "Hiding from Address book and setting account expiration to $Expiration"
+                Set-ADUser -Identity $Identity -add @{msExchHideFromAddressLists=$true} -Server dom01 -WhatIf
+                Set-ADAccountExpiration -Identity $Identity -DateTime $Expiration -Server dom01 -WhatIf
+                }
+            }
+        else
+            {
+            Write-Host "Enabling, Unhiding from Address Book, and removing $($Identity.Name) from `"Terminated Users`" and/or `"FMLA Users`" Security Group(s)."
+            Enable-ADAccount -Identity $Identity -Server dom01 -WhatIf
+            Set-ADUser -Identity $Identity -clear msExchHideFromAddressLists -Server dom01 -WhatIf
+            "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity -WhatIf
+            Clear-ADAccountExpiration -Identity $Identity -Server dom01 -WhatIf
+            }
+        }
+}
