@@ -1666,7 +1666,7 @@ Function Set-LPSUserStatus
     [Parameter(Mandatory, ParameterSetName = "Return")]
     [switch]$Return,
     [Parameter(ParameterSetName = "Terminated")]
-    [DateTime]$DateTerminated =  (Get-Date)
+    [DateTime]$DateTerminated =  (Get-Date -Hour 0 -Minute 0 -Second 0 -Millisecond 0)
     )
     process
         {
@@ -1679,23 +1679,23 @@ Function Set-LPSUserStatus
         if ( $PSCmdlet.ParameterSetName -ne "Return" )
             {
             Write-Host "Disabling and adding $($Identity.Name) to `"$($PSCmdlet.ParameterSetName) Users`" Security Group."
-            Disable-ADAccount -Identity $Identity -Server dom01 -WhatIf
-            Add-ADGroupMember -Identity "$($PSCmdlet.ParameterSetName) Users" -Members $Identity -WhatIf
+            Disable-ADAccount -Identity $Identity -Server dom01
+            Add-ADGroupMember -Identity "$($PSCmdlet.ParameterSetName) Users" -Members $Identity
             if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
                 {
                 $Expiration = $DateTerminated.AddDays(90)
                 Write-Host "Hiding from Address book and setting account expiration to $Expiration"
-                Set-ADUser -Identity $Identity -add @{msExchHideFromAddressLists=$true} -Server dom01 -WhatIf
-                Set-ADAccountExpiration -Identity $Identity -DateTime $Expiration -Server dom01 -WhatIf
+                Set-ADUser -Identity $Identity -add @{msExchHideFromAddressLists=$true} -Server dom01
+                Set-ADAccountExpiration -Identity $Identity -DateTime $Expiration -Server dom01
                 }
             }
         else
             {
             Write-Host "Enabling, Unhiding from Address Book, and removing $($Identity.Name) from `"Terminated Users`" and/or `"FMLA Users`" Security Group(s)."
-            Enable-ADAccount -Identity $Identity -Server dom01 -WhatIf
-            Set-ADUser -Identity $Identity -clear msExchHideFromAddressLists -Server dom01 -WhatIf
-            "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity -WhatIf
-            Clear-ADAccountExpiration -Identity $Identity -Server dom01 -WhatIf
+            Enable-ADAccount -Identity $Identity -Server dom01
+            Set-ADUser -Identity $Identity -clear msExchHideFromAddressLists -Server dom01
+            "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity
+            Clear-ADAccountExpiration -Identity $Identity -Server dom01
             }
         }
 }
