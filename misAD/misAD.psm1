@@ -1699,3 +1699,27 @@ Function Set-LPSUserStatus
             }
         }
 }
+
+Function Get-ExpiredTerminations 
+    {
+    param (
+        [DateTime]$ReportDate = ( Get-Date )
+    )
+    begin
+        {
+        $Terminated = Get-ADGroupMember "Terminated Users" -Server dom01
+        $Expired = $Terminated | 
+            Get-ADUser -Properties AccountExpirationDate -Server dom01 | 
+                Where-Object { ( $_.AccountExpirationDate -lt $ReportDate ) -and 
+                    ( $null -ne $_.AccountExpirationDate ) } 
+        }
+    
+    process
+        {
+        }
+
+    end
+        {
+        $Expired
+        }
+    }
