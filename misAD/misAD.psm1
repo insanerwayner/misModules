@@ -1747,17 +1747,31 @@ Function Remove-LPSUser
     {
     <#
     .SYNOPSIS
-        A short one-line action-based description, e.g. 'Tests if a function is valid'
+        Deletes LifePath users from Active Directory.
+
     .DESCRIPTION
-        A longer description of the function, its purpose, common use cases, etc.
+        Deletes LifePath users from Active Directory. Outputs path to their HomeDrive so you can move/delete it yourself. 
+
     .NOTES
-        Information or caveats about the function e.g. 'This function is not supported in Linux'
-    .LINK
-        Specify a URI to a help page, this will show when Get-Help -Online is used.
+        Cleaning up/moving the HomeDrive is performed manually by the IT Staff. (for now)
+
+    .PARAMETER sAMAccountName
+        Username of Active Directory user you wish to remove. 
+
     .EXAMPLE
-        Test-MyTestFunction -Verbose
-        Explanation of the function or its result. You can include multiple examples with additional .EXAMPLE lines
+        Remove-LPSUser zztest
+
+        Will delete the user account for zztest. Outputs the path to the HomeDrive so you can clean it up.  
+
+    .EXAMPLE
+        Get-LPSExpiredTerminations | Remove-LPSUser
+
+        Removes all expired Terminated users (Users that are in the Terminated Users group and their account has expired). 
     #>
+    [cmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact = 'High'
+        )]
     param (
         [Parameter(
             Mandatory,
@@ -1767,7 +1781,12 @@ Function Remove-LPSUser
         [Alias('Identity')]
         [string]$sAMAccountName
         )
-       process
+        begin
+            {
+            $UserInfoList = New-Object System.Collections.Generic.List[PSObject]
+            }
+
+        process
         {
         $Identity = Get-ADUser -Identity $sAMAccountName -ErrorAction SilentlyContinue -Server dom01 -Properties HomeDirectory
         if ( -not $Identity )
@@ -1775,6 +1794,41 @@ Function Remove-LPSUser
             Write-Warning "Could not find user name $($Identity). Skipping."
             return
             }
-        Remove-ADUSer $Identity -WhatIf -Confirm:$true
+        $Confirmed = $PSCmdlet.ShouldProcess($Identity.Name,"Delete Active Directory account")
+        if ( $confirmed )
+            {
+            Write-Verbose "Removing $Identity.Name"
+            Remove-ADUser $Identity
+            }
+        if ( $Confirmed -or $WhatIfPreference )
+            {
+            if ( $Identity.HomeDirectory )
+                {
+                $HomeDirectory = $Identity.HomeDirectory.Replace("\\","").Split("\")
+                try
+                    {
+                    $HomeShare = Get-SMBShare -Name $HomeDirectory[1] -CimSession (New-CimSession $HomeDirectory[0]) -ErrorAction Stop
+                    $HomeSharePath = $HomeShare.Path
+                    }
+                catch
+                    {
+                    $HomeSharePath = "Share not found"
+                    }
+                }
+            $UserInfo = [PSCustomObject]@{
+                Name = $Identity.Name
+                SamAccountName = $Identity.SamAccountName
+                HomeDirectory = $Identity.HomeDirectory
+                HomeShareServer = $HomeDirectory[0]
+                HomeSharePath = $HomeSharePath
+                }
+            $UserInfoList.Add($UserInfo)
+            }
         }
+
+        end
+            {
+            Write-Host "$(if ($WhatIfPreference ) { "What if: " })Removed Active Directory accounts. You man now clean/move the HomeDirectory folders."
+            $UserInfoList
+            }
     }
