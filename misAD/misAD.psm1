@@ -1593,3 +1593,242 @@ Function Export-NEOCredentials
         Write-Error "An error occurred: $_"
         }
     }
+
+Function Set-LPSUserStatus
+    {
+    <#
+    .SYNOPSIS
+    Disable, hold, terminate, or restore an AD user in one unified workflow.
+
+    .DESCRIPTION
+    Centralizes our leave and off-boarding/on-boarding processes in a single function.
+
+    .PARAMETER SamAccountName
+    The user's sAMAccountName (or Name).  
+    Accepts pipeline input by value (string) or by property name (ADUser.SamAccountName).  
+    Alias: **Identity**.
+
+    .PARAMETER FMLA
+    Switch to place the user on FMLA hold:
+    - Disables the account  
+    - Adds to the "FMLA Users" group
+
+    .PARAMETER Terminated
+    Switch to terminate the user:
+    - Disables the account  
+    - Adds to the "Terminated Users" group  
+    - Hides from the Exchange address lists  
+    - Sets `AccountExpirationDate = $DateTerminated + 90 days`
+
+    .PARAMETER Return
+    Switch to restore a previously held or terminated user:
+    - Enables the account  
+    - Clears address-list hiding  
+    - Removes from both "FMLA Users" and "Terminated Users" groups  
+    - Clears any `AccountExpirationDate`
+
+    .PARAMETER DateTerminated
+    The base date for the 90-day expiration stamp when `-Terminated` is used.  
+    Defaults to `(Get-Date)` if omitted.
+
+    .EXAMPLE
+    # Put a single user on FMLA hold:
+    Set-LpsUserStatus 'jdoe' -FMLA
+
+    .EXAMPLE
+    # Terminate multiple users from the pipeline:
+    'alice','bob' | Set-LpsUserStatus -Terminated
+
+    .EXAMPLE
+    # Terminate a user and back-date the termination marker:
+    Set-LpsUserStatus -Identity 'cwilson' -Terminated -DateTerminated 2025-04-01
+
+    .EXAMPLE
+    # Return everyone in the "FMLA Users" group to active status:
+    Get-ADGroupMember "FMLA Users" | Set-LpsUserStatus -Return
+
+    .NOTES
+    Author: Wayne Reeves  
+    Created: 2025-05-02
+    #>
+    param(
+    [Parameter(
+        Mandatory,
+        Position = 0,
+        ValueFromPipeline
+        )]
+    [Alias('Identity')]
+    [string]$sAMAccountName,
+    [Parameter(Mandatory, ParameterSetName = "FMLA")]
+    [switch]$FMLA,
+    [Parameter(Mandatory, ParameterSetName = "Terminated")]
+    [switch]$Terminated,
+    [Parameter(Mandatory, ParameterSetName = "Return")]
+    [switch]$Return,
+    [Parameter(ParameterSetName = "Terminated")]
+    [DateTime]$DateTerminated =  (Get-Date -Hour 0 -Minute 0 -Second 0 -Millisecond 0)
+    )
+    begin
+        {
+        if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
+            {   
+            Confirm-MgGraph -RequiredScopes Group.ReadWrite.All, User.ReadWrite.All
+            }
+        }
+    process
+        {
+        $Identity = Get-ADUser -Identity $sAMAccountName -Properties Created -ErrorAction SilentlyContinue -Server dom01
+        if ( -not $Identity )
+            {
+            Write-Warning "Could not find user name $($Identity). Skipping."
+            return
+            }
+        if ( $PSCmdlet.ParameterSetName -ne "Return" )
+            {
+            Write-Host "Disabling and adding $($Identity.Name) to `"$($PSCmdlet.ParameterSetName) Users`" Security Group."
+            Disable-ADAccount -Identity $Identity -Server dom01
+            Add-ADGroupMember -Identity "$($PSCmdlet.ParameterSetName) Users" -Members $Identity -Server dom01
+            if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
+                {
+                if ( ($Identity.Created - (Get-Date)).Days -ge 30 )
+                    {
+                    $Expiration = $DateTerminated.AddDays(90)
+                    }
+                else
+                    {
+                    $Expiration = Get-Date
+                    }
+                Write-Host "Hiding from Address book and setting account expiration to $Expiration"
+                Set-ADUser -Identity $Identity -add @{msExchHideFromAddressLists=$true} -Server dom01
+                Set-ADAccountExpiration -Identity $Identity -DateTime $Expiration -Server dom01
+                Write-Host "Removing E3 License Groups, Zoom License Groups"
+                Write-Host "Microsoft 365 Business Basic license will be applied by the `"Terminated Users`" Group"
+                $E3Groups = Get-ADPrincipalGroupMembership $Identity -Server dom01 | 
+                    Where-Object { $_.name -like "E3*License*" -or $_.name -eq "OneDrive" }
+                $E3Groups | Remove-AdGroupMember -members $Identity.sAMAccountName -Server dom01 -WhatIf
+                $EntraIdentity = Get-MgUser -UserId $Identity.userprincipalname
+                $ZoomGroups = Get-MgUserMemberOf -UserId $Identity.userprincipalname -all | 
+                    Where-Object { $_.additionalproperties['displayName'] -match "Zoom" }               
+                if ( $ZoomGroups.count -gt 0 )
+                    {
+                    $ZoomGroups | Foreach-Object {
+                        Remove-MgGroupMemberbyRef -GroupID $_.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
+                        }
+                    }
+                }
+            }
+        else
+            {
+            Write-Host "Enabling, Unhiding from Address Book, and removing $($Identity.Name) from `"Terminated Users`" and/or `"FMLA Users`" Security Group(s)."
+            Enable-ADAccount -Identity $Identity -Server dom01
+            Set-ADUser -Identity $Identity -clear msExchHideFromAddressLists -Server dom01
+            "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity
+            Clear-ADAccountExpiration -Identity $Identity -Server dom01
+            }
+        }
+}
+
+Function Get-LPSExpiredTerminations 
+    {
+    param (
+        [string]$GroupName = "Terminated Users",
+        [DateTime]$ReportDate = ( Get-Date )
+    )
+        $Terminated = Get-ADGroupMember "Terminated Users" -Server dom01
+        $Expired = $Terminated | 
+            Get-ADUser -Properties AccountExpirationDate -Server dom01 | 
+                Where-Object { ( $_.AccountExpirationDate -lt $ReportDate ) -and 
+                    ( $null -ne $_.AccountExpirationDate ) } 
+        $Expired
+    }
+
+
+Function Remove-LPSUser
+    {
+    <#
+    .SYNOPSIS
+        Deletes LifePath users from Active Directory.
+
+    .DESCRIPTION
+        Deletes LifePath users from Active Directory. Outputs path to their HomeDrive so you can move/delete it yourself. 
+
+    .NOTES
+        Cleaning up/moving the HomeDrive is performed manually by the IT Staff. (for now)
+
+    .PARAMETER sAMAccountName
+        Username of Active Directory user you wish to remove. 
+
+    .EXAMPLE
+        Remove-LPSUser zztest
+
+        Will delete the user account for zztest. Outputs the path to the HomeDrive so you can clean it up.  
+
+    .EXAMPLE
+        Get-LPSExpiredTerminations | Remove-LPSUser
+
+        Removes all expired Terminated users (Users that are in the Terminated Users group and their account has expired). 
+    #>
+    [cmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact = 'High'
+        )]
+    param (
+        [Parameter(
+            Mandatory,
+            Position = 0,
+            ValueFromPipeline
+            )]
+        [Alias('Identity')]
+        [string]$sAMAccountName
+        )
+        begin
+            {
+            $UserInfoList = New-Object System.Collections.Generic.List[PSObject]
+            }
+
+        process
+        {
+        $Identity = Get-ADUser -Identity $sAMAccountName -ErrorAction SilentlyContinue -Server dom01 -Properties HomeDirectory
+        if ( -not $Identity )
+            {
+            Write-Warning "Could not find user name $($Identity). Skipping."
+            return
+            }
+        $Confirmed = $PSCmdlet.ShouldProcess($Identity.Name,"Delete Active Directory account")
+        if ( $confirmed )
+            {
+            Write-Verbose "Removing $Identity.Name"
+            Remove-ADUser $Identity
+            }
+        if ( $Confirmed -or $WhatIfPreference )
+            {
+            if ( $Identity.HomeDirectory )
+                {
+                $HomeDirectory = $Identity.HomeDirectory.Replace("\\","").Split("\")
+                try
+                    {
+                    $HomeShare = Get-SMBShare -Name $HomeDirectory[1] -CimSession (New-CimSession $HomeDirectory[0]) -ErrorAction Stop
+                    $HomeSharePath = $HomeShare.Path
+                    }
+                catch
+                    {
+                    $HomeSharePath = "Share not found"
+                    }
+                }
+            $UserInfo = [PSCustomObject]@{
+                Name = $Identity.Name
+                SamAccountName = $Identity.SamAccountName
+                HomeDirectory = $Identity.HomeDirectory
+                HomeShareServer = $HomeDirectory[0]
+                HomeSharePath = $HomeSharePath
+                }
+            $UserInfoList.Add($UserInfo)
+            }
+        }
+
+        end
+            {
+            Write-Host "$(if ($WhatIfPreference ) { "What if: " })Removed Active Directory accounts. You man now clean/move the HomeDirectory folders."
+            $UserInfoList
+            }
+    }
