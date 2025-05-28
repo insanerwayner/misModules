@@ -1730,6 +1730,56 @@ Function Set-LPSUserStatus
 
 Function Get-LPSExpiredTerminations 
     {
+    <#
+    .SYNOPSIS
+        Lists terminated user accounts that have exceeded expiration date (90 days)
+
+    .DESCRIPTION
+        Will query for users that are terminated and have expired. Defaults to look for users in the "Terminated Users" group and that have exceeded 90 day expiration date.
+
+    .PARAMETER GroupName
+        Overrides the default "Terminated Users" group by specifying the name of a different security group.
+
+    .PARAMETER ReportDate
+        Overrides the comparison date from the expriation date, which defaults to today.
+
+    .EXAMPLE
+        Get-LPSExpiredTerminations
+
+        AccountExpirationDate : 1/5/2021 12:00:00 AM
+        DistinguishedName     : CN=Jo Beth Collier,CN=Users,DC=ccmhmr,DC=local
+        Enabled               : False
+        GivenName             : Jo Beth
+        Name                  : Jo Beth Collier
+        ObjectClass           : user
+        ObjectGUID            : 4011cc1a-6ecb-4b05-860f-7e0c64ab4cc9
+        SamAccountName        : jcollier
+        SID                   : S-1-5-21-848239347-1132225710-1734353810-33999
+        Surname               : Collier
+        UserPrincipalName     : jcollier@lifepathsystems.org
+
+        AccountExpirationDate : 5/22/2025 10:28:01 AM
+        DistinguishedName     : CN=Ikemba Dyke,CN=Users,DC=ccmhmr,DC=local
+        Enabled               : False
+        GivenName             : Ikemba
+        Name                  : Ikemba Dyke
+        ObjectClass           : user
+        ObjectGUID            : a3e18ba4-24c3-4e63-ab54-ef77bf016cc0
+        SamAccountName        : idyke
+        SID                   : S-1-5-21-848239347-1132225710-1734353810-40526
+        Surname               : Dyke
+        UserPrincipalName     : idyke@lifepathsystems.org
+
+    .EXAMPLE
+        Get-LPSExpiredTerminations -ReportDate 2025-04-28
+
+        Queries for users that have expired after 2025-04-28 instead of the current date
+
+    .EXAMPLE
+        Get-LPSExpiredTerminations -GroupName "Example Group"
+
+        Queries by users in the "Example Group" Security group instead of "Terminated Users
+    #>
     param (
         [string]$GroupName = "Terminated Users",
         [DateTime]$ReportDate = ( Get-Date )
@@ -1750,23 +1800,23 @@ Function Remove-LPSUser
         Deletes LifePath users from Active Directory.
 
     .DESCRIPTION
-        Deletes LifePath users from Active Directory. Outputs path to their HomeDrive so you can move/delete it yourself. 
+        Deletes LifePath users from Active Directory. Outputs path to their HomeDrive so you can move/delete it yourself.
 
     .NOTES
         Cleaning up/moving the HomeDrive is performed manually by the IT Staff. (for now)
 
     .PARAMETER sAMAccountName
-        Username of Active Directory user you wish to remove. 
+        Username of Active Directory user you wish to remove.
 
     .EXAMPLE
         Remove-LPSUser zztest
 
-        Will delete the user account for zztest. Outputs the path to the HomeDrive so you can clean it up.  
+        Will delete the user account for zztest. Outputs the path to the HomeDrive so you can clean it up.
 
     .EXAMPLE
         Get-LPSExpiredTerminations | Remove-LPSUser
 
-        Removes all expired Terminated users (Users that are in the Terminated Users group and their account has expired). 
+        Removes all expired Terminated users (Users that are in the Terminated Users group and their account has expired).
     #>
     [cmdletBinding(
         SupportsShouldProcess = $true,
