@@ -1,4 +1,4 @@
-﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users, Microsoft.Graph.Authentication, Microsoft.Graph.Reports
+﻿#requires -Modules ActiveDirectory, misScripting, Microsoft.Graph.Users, Microsoft.Graph.Authentication, Microsoft.Graph.Reports, Microsoft.Graph.Groups
 
 Function Confirm-MgGraph 
     {
@@ -1604,31 +1604,31 @@ Function Set-LPSUserStatus
     Centralizes our leave and off-boarding/on-boarding processes in a single function.
 
     .PARAMETER SamAccountName
-    The user's sAMAccountName (or Name).  
-    Accepts pipeline input by value (string) or by property name (ADUser.SamAccountName).  
+    The user's sAMAccountName (or Name).
+    Accepts pipeline input by value (string) or by property name (ADUser.SamAccountName).
     Alias: **Identity**.
 
     .PARAMETER FMLA
     Switch to place the user on FMLA hold:
-    - Disables the account  
+    - Disables the account
     - Adds to the "FMLA Users" group
 
     .PARAMETER Terminated
     Switch to terminate the user:
-    - Disables the account  
-    - Adds to the "Terminated Users" group  
-    - Hides from the Exchange address lists  
+    - Disables the account
+    - Adds to the "Terminated Users" group
+    - Hides from the Exchange address lists
     - Sets `AccountExpirationDate = $DateTerminated + 90 days`
 
     .PARAMETER Return
     Switch to restore a previously held or terminated user:
-    - Enables the account  
-    - Clears address-list hiding  
-    - Removes from both "FMLA Users" and "Terminated Users" groups  
+    - Enables the account
+    - Clears address-list hiding
+    - Removes from both "FMLA Users" and "Terminated Users" groups
     - Clears any `AccountExpirationDate`
 
     .PARAMETER DateTerminated
-    The base date for the 90-day expiration stamp when `-Terminated` is used.  
+    The base date for the 90-day expiration stamp when `-Terminated` is used.
     Defaults to `(Get-Date)` if omitted.
 
     .EXAMPLE
@@ -1641,14 +1641,25 @@ Function Set-LPSUserStatus
 
     .EXAMPLE
     # Terminate a user and back-date the termination marker:
-    Set-LpsUserStatus -Identity 'cwilson' -Terminated -DateTerminated 2025-04-01
+    Set-LpsUserStatus -Identity cwilson -Terminated -DateTerminated 2025-04-01
+
+    .EXAMPLE
+    # Return a user from FMLA
+    Set-LpsUserStatus jdoe -Return
+
+    Will enable their account and remove them from the "FMLA Users" group.  
 
     .EXAMPLE
     # Return everyone in the "FMLA Users" group to active status:
     Get-ADGroupMember "FMLA Users" | Set-LpsUserStatus -Return
 
+    .EXAMPLE
+    # A terminated staff returning to employment
+    Set-LpsUserStatus chickerson -Return
+
+    Will enable account, remove from "Terminated Users" group, add back E3 Licenses, and ask which Zoom License to apply"
     .NOTES
-    Author: Wayne Reeves  
+    Author: Wayne Reeves
     Created: 2025-05-02
     #>
     param(
@@ -1663,21 +1674,32 @@ Function Set-LPSUserStatus
     [switch]$FMLA,
     [Parameter(Mandatory, ParameterSetName = "Terminated")]
     [switch]$Terminated,
+    [Parameter(ParameterSetName = "Terminated")]
+    [DateTime]$DateTerminated =  (Get-Date -Hour 0 -Minute 0 -Second 0 -Millisecond 0),
     [Parameter(Mandatory, ParameterSetName = "Return")]
     [switch]$Return,
-    [Parameter(ParameterSetName = "Terminated")]
-    [DateTime]$DateTerminated =  (Get-Date -Hour 0 -Minute 0 -Second 0 -Millisecond 0)
+    [Parameter(ParameterSetName = "Return")]
+    [ValidateSet("Zoom Basic", "Zoom Licensed", "None")]
+    [string]$ZoomLicense
     )
     begin
         {
-        if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
-            {   
+        if ( $PSCmdlet.ParameterSetName -ne "FMLA" )
+            {
             Confirm-MgGraph -RequiredScopes Group.ReadWrite.All, User.ReadWrite.All
             }
+        $UserInfoList = New-Object System.Collections.Generic.List[PSObject]
         }
     process
         {
         $Identity = Get-ADUser -Identity $sAMAccountName -Properties Created -ErrorAction SilentlyContinue -Server dom01
+            $UserInfo = [PSCustomObject]@{
+                Name = $Identity.Name
+                SamAccountName = $Identity.SamAccountName
+                Enabled = $null
+                Group = $PsCmdlet.ParameterSetName
+                Expiration = $null
+                }
         if ( -not $Identity )
             {
             Write-Warning "Could not find user name $($Identity). Skipping."
@@ -1685,12 +1707,12 @@ Function Set-LPSUserStatus
             }
         if ( $PSCmdlet.ParameterSetName -ne "Return" )
             {
-            Write-Host "Disabling and adding $($Identity.Name) to `"$($PSCmdlet.ParameterSetName) Users`" Security Group."
             Disable-ADAccount -Identity $Identity -Server dom01
+            $UserInfo.Enabled = $False
             Add-ADGroupMember -Identity "$($PSCmdlet.ParameterSetName) Users" -Members $Identity -Server dom01
             if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
                 {
-                if ( ($Identity.Created - (Get-Date)).Days -ge 30 )
+                if ( $Identity.Created -le $DateTerminated.AddDays(-30) )
                     {
                     $Expiration = $DateTerminated.AddDays(90)
                     }
@@ -1698,37 +1720,71 @@ Function Set-LPSUserStatus
                     {
                     $Expiration = Get-Date
                     }
-                Write-Host "Hiding from Address book and setting account expiration to $Expiration"
+                $UserInfo.Expiration = $Expiration
                 Set-ADUser -Identity $Identity -add @{msExchHideFromAddressLists=$true} -Server dom01
                 Set-ADAccountExpiration -Identity $Identity -DateTime $Expiration -Server dom01
-                Write-Host "Removing E3 License Groups, Zoom License Groups"
-                Write-Host "Microsoft 365 Business Basic license will be applied by the `"Terminated Users`" Group"
-                $E3Groups = Get-ADPrincipalGroupMembership $Identity -Server dom01 | 
+                $E3Groups = Get-ADPrincipalGroupMembership $Identity -Server dom01 |
                     Where-Object { $_.name -like "E3*License*" -or $_.name -eq "OneDrive" }
-                $E3Groups | Remove-AdGroupMember -members $Identity.sAMAccountName -Server dom01 -WhatIf
+                $E3Groups | Remove-AdGroupMember -members $Identity.sAMAccountName -Confirm:$False -Server dom01
                 $EntraIdentity = Get-MgUser -UserId $Identity.userprincipalname
-                $ZoomGroups = Get-MgUserMemberOf -UserId $Identity.userprincipalname -all | 
-                    Where-Object { $_.additionalproperties['displayName'] -match "Zoom" }               
+                $ZoomGroups = Get-MgUserMemberOf -UserId $Identity.userprincipalname -all |
+                    Where-Object { $_.additionalproperties['displayName'] -match "Zoom" }
                 if ( $ZoomGroups.count -gt 0 )
                     {
-                    $ZoomGroups | Foreach-Object {
-                        Remove-MgGroupMemberbyRef -GroupID $_.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
-                        }
+                    $ZoomGroups |
+                        Foreach-Object {
+                            Remove-MgGroupMemberbyRef -GroupID $_.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
+                            }
                     }
                 }
             }
         else
             {
-            Write-Host "Enabling, Unhiding from Address Book, and removing $($Identity.Name) from `"Terminated Users`" and/or `"FMLA Users`" Security Group(s)."
             Enable-ADAccount -Identity $Identity -Server dom01
+            $UserInfo.Enabled = $True
             Set-ADUser -Identity $Identity -clear msExchHideFromAddressLists -Server dom01
-            "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity
+            $MemberOf = Get-ADPrincipalGroupMembership $Identity -Server dom01
+            if ( $MemberOf.Name -contains "Terminated Users" )
+                {
+                Write-Verbose "Adding E3 Licenses"
+                "E3 Simple Licenses", "E3 Teams License", "E3 Stream License", "OneDrive" |
+                    Add-AdGroupMember -Members $Identity -Server dom01
+                if ( -not $ZoomLicense )
+                    {
+                    $ZoomChoiceTitle = "Zoom License Group"
+                    $ZoomChoiceMessage = "Choose which Zoom license to apply to $($Identity.DisplayName)"
+                    $ZoomChoiceOptions = @(
+                        [System.Management.Automation.Host.ChoiceDescription]::new('Zoom &Basic')
+                        [System.Management.Automation.Host.ChoiceDescription]::new('Zoom &Licensed')
+                        [System.Management.Automation.Host.ChoiceDescription]::new('&None')
+                        )
+                    $ZoomChoiceDefault = 2
+                    $ZoomChoiceSelection = $host.ui.PromptForChoice($ZoomChoiceTitle, $ZoomChoiceMessage, $ZoomChoiceOptions, $ZoomChoiceDefault)
+                    $ZoomLicense = $ZoomChoiceOptions[$ZoomChoiceSelection].Label.Replace('&','')
+                    }
+                if ( $ZoomLicense -match "Zoom" )
+                    {
+                    $ZoomGroup = Get-MgGroup -Filter "DisplayName eq `'$ZoomLicense`'"
+                    $EntraIdentity = Get-MgUser -UserId $Identity.userprincipalname
+                    New-MgGroupMember -GroupID $ZoomGroup.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
+                    }
+                }
+            "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity -Confirm:$False -Server dom01
             Clear-ADAccountExpiration -Identity $Identity -Server dom01
             }
+            if ( $PSCmdlet.ParameterSetName -ne "FMLA" )
+                {
+                Remove-ADGroupMember "FMLA Users" -Members $Identity -Confirm:$False -Server dom01
+                }
+            $UserInfoList.Add($UserInfo)
         }
-}
+        end
+            {
+            $UserInfoList
+            }
+    }
 
-Function Get-LPSExpiredTerminations 
+Function Get-LPSExpiredTermination
     {
     <#
     .SYNOPSIS
@@ -1744,7 +1800,7 @@ Function Get-LPSExpiredTerminations
         Overrides the comparison date from the expriation date, which defaults to today.
 
     .EXAMPLE
-        Get-LPSExpiredTerminations
+        Get-LPSExpiredTermination
 
         AccountExpirationDate : 1/5/2021 12:00:00 AM
         DistinguishedName     : CN=Jo Beth Collier,CN=Users,DC=ccmhmr,DC=local
@@ -1771,12 +1827,12 @@ Function Get-LPSExpiredTerminations
         UserPrincipalName     : idyke@lifepathsystems.org
 
     .EXAMPLE
-        Get-LPSExpiredTerminations -ReportDate 2025-04-28
+        Get-LPSExpiredTermination -ReportDate 2025-04-28
 
         Queries for users that have expired after 2025-04-28 instead of the current date
 
     .EXAMPLE
-        Get-LPSExpiredTerminations -GroupName "Example Group"
+        Get-LPSExpiredTermination -GroupName "Example Group"
 
         Queries by users in the "Example Group" Security group instead of "Terminated Users
     #>
@@ -1785,10 +1841,10 @@ Function Get-LPSExpiredTerminations
         [DateTime]$ReportDate = ( Get-Date )
     )
         $Terminated = Get-ADGroupMember "Terminated Users" -Server dom01
-        $Expired = $Terminated | 
-            Get-ADUser -Properties AccountExpirationDate -Server dom01 | 
-                Where-Object { ( $_.AccountExpirationDate -lt $ReportDate ) -and 
-                    ( $null -ne $_.AccountExpirationDate ) } 
+        $Expired = $Terminated |
+            Get-ADUser -Properties AccountExpirationDate -Server dom01 |
+                Where-Object { ( $_.AccountExpirationDate -lt $ReportDate ) -and
+                    ( $null -ne $_.AccountExpirationDate ) }
         $Expired
     }
 
@@ -1814,7 +1870,7 @@ Function Remove-LPSUser
         Will delete the user account for zztest. Outputs the path to the HomeDrive so you can clean it up.
 
     .EXAMPLE
-        Get-LPSExpiredTerminations | Remove-LPSUser
+        Get-LPSExpiredTermination | Remove-LPSUser
 
         Removes all expired Terminated users (Users that are in the Terminated Users group and their account has expired).
     #>
@@ -1882,3 +1938,4 @@ Function Remove-LPSUser
             $UserInfoList
             }
     }
+
