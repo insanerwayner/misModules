@@ -1662,6 +1662,10 @@ Function Set-LPSUserStatus
     Author: Wayne Reeves
     Created: 2025-05-02
     #>
+    [CmdletBinding(
+        SupportsShouldProcess=$true,
+        ConfirmImpact = "Medium"
+        )]
     param(
     [Parameter(
         Mandatory,
@@ -1705,78 +1709,95 @@ Function Set-LPSUserStatus
             Write-Warning "Could not find user name $($Identity). Skipping."
             return
             }
-        if ( $PSCmdlet.ParameterSetName -ne "Return" )
+        if ( $PSCmdlet.ShouldProcess($Identity.Name,"Set user as $($PSCmdlet.ParameterSetName)") )
             {
-            Disable-ADAccount -Identity $Identity -Server dom01
-            $UserInfo.Enabled = $False
-            Add-ADGroupMember -Identity "$($PSCmdlet.ParameterSetName) Users" -Members $Identity -Server dom01
-            if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
+            if ( $PSCmdlet.ParameterSetName -ne "Return" )
                 {
-                if ( $Identity.Created -le $DateTerminated.AddDays(-30) )
+                Disable-ADAccount -Identity $Identity -Server dom01
+                $UserInfo.Enabled = $False
+                Add-ADGroupMember -Identity "$($PSCmdlet.ParameterSetName) Users" -Members $Identity -Server dom01
+                if ( $PSCmdlet.ParameterSetName -eq "Terminated" )
                     {
-                    $Expiration = $DateTerminated.AddDays(90)
-                    }
-                else
-                    {
-                    $Expiration = Get-Date
-                    }
-                $UserInfo.Expiration = $Expiration
-                Set-ADUser -Identity $Identity -add @{msExchHideFromAddressLists=$true} -Server dom01
-                Set-ADAccountExpiration -Identity $Identity -DateTime $Expiration -Server dom01
-                $E3Groups = Get-ADPrincipalGroupMembership $Identity -Server dom01 |
-                    Where-Object { $_.name -like "E3*License*" -or $_.name -eq "OneDrive" }
-                $E3Groups | Remove-AdGroupMember -members $Identity.sAMAccountName -Confirm:$False -Server dom01
-                $EntraIdentity = Get-MgUser -UserId $Identity.userprincipalname
-                $ZoomGroups = Get-MgUserMemberOf -UserId $Identity.userprincipalname -all |
-                    Where-Object { $_.additionalproperties['displayName'] -match "Zoom" }
-                if ( $ZoomGroups.count -gt 0 )
-                    {
-                    $ZoomGroups |
-                        Foreach-Object {
-                            Remove-MgGroupMemberbyRef -GroupID $_.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
-                            }
-                    }
-                }
-            }
-        else
-            {
-            Enable-ADAccount -Identity $Identity -Server dom01
-            $UserInfo.Enabled = $True
-            Set-ADUser -Identity $Identity -clear msExchHideFromAddressLists -Server dom01
-            $MemberOf = Get-ADPrincipalGroupMembership $Identity -Server dom01
-            if ( $MemberOf.Name -contains "Terminated Users" )
-                {
-                Write-Verbose "Adding E3 Licenses"
-                "E3 Simple Licenses", "E3 Teams License", "E3 Stream License", "OneDrive" |
-                    Add-AdGroupMember -Members $Identity -Server dom01
-                if ( -not $ZoomLicense )
-                    {
-                    $ZoomChoiceTitle = "Zoom License Group"
-                    $ZoomChoiceMessage = "Choose which Zoom license to apply to $($Identity.DisplayName)"
-                    $ZoomChoiceOptions = @(
-                        [System.Management.Automation.Host.ChoiceDescription]::new('Zoom &Basic')
-                        [System.Management.Automation.Host.ChoiceDescription]::new('Zoom &Licensed')
-                        [System.Management.Automation.Host.ChoiceDescription]::new('&None')
-                        )
-                    $ZoomChoiceDefault = 2
-                    $ZoomChoiceSelection = $host.ui.PromptForChoice($ZoomChoiceTitle, $ZoomChoiceMessage, $ZoomChoiceOptions, $ZoomChoiceDefault)
-                    $ZoomLicense = $ZoomChoiceOptions[$ZoomChoiceSelection].Label.Replace('&','')
-                    }
-                if ( $ZoomLicense -match "Zoom" )
-                    {
-                    $ZoomGroup = Get-MgGroup -Filter "DisplayName eq `'$ZoomLicense`'"
+                    if ( $Identity.Created -le $DateTerminated.AddDays(-30) )
+                        {
+                        $Expiration = $DateTerminated.AddDays(90)
+                        }
+                    else
+                        {
+                        $Expiration = Get-Date
+                        }
+                    $UserInfo.Expiration = $Expiration
+                    Set-ADUser -Identity $Identity -add @{msExchHideFromAddressLists=$true} -Server dom01
+                    Set-ADAccountExpiration -Identity $Identity -DateTime $Expiration -Server dom01
+                    $E3Groups = Get-ADPrincipalGroupMembership $Identity -Server dom01 |
+                        Where-Object { $_.name -like "E3*License*" -or $_.name -eq "OneDrive" }
+                    $E3Groups | Remove-AdGroupMember -members $Identity.sAMAccountName -Confirm:$False -Server dom01
                     $EntraIdentity = Get-MgUser -UserId $Identity.userprincipalname
-                    New-MgGroupMember -GroupID $ZoomGroup.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
+                    $ZoomGroups = Get-MgUserMemberOf -UserId $Identity.userprincipalname -all |
+                        Where-Object { $_.additionalproperties['displayName'] -match "Zoom" }
+                    if ( $ZoomGroups.count -gt 0 )
+                        {
+                        $ZoomGroups |
+                            Foreach-Object {
+                                Remove-MgGroupMemberbyRef -GroupID $_.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
+                                }
+                        }
                     }
                 }
-            "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity -Confirm:$False -Server dom01
-            Clear-ADAccountExpiration -Identity $Identity -Server dom01
-            }
-            if ( $PSCmdlet.ParameterSetName -ne "FMLA" )
+            else
                 {
-                Remove-ADGroupMember "FMLA Users" -Members $Identity -Confirm:$False -Server dom01
+                Enable-ADAccount -Identity $Identity -Server dom01
+                $UserInfo.Enabled = $True
+                Set-ADUser -Identity $Identity -clear msExchHideFromAddressLists -Server dom01
+                $MemberOf = Get-ADPrincipalGroupMembership $Identity -Server dom01
+                if ( $MemberOf.Name -contains "Terminated Users" )
+                    {
+                    Write-Verbose "Adding E3 Licenses"
+                    "E3 Simple Licenses", "E3 Teams License", "E3 Stream License", "OneDrive" |
+                        Add-AdGroupMember -Members $Identity -Server dom01
+                    if ( -not $ZoomLicense )
+                        {
+                        $ZoomChoiceTitle = "Zoom License Group"
+                        $ZoomChoiceMessage = "Choose which Zoom license to apply to $($Identity.DisplayName)"
+                        $ZoomChoiceOptions = @(
+                            [System.Management.Automation.Host.ChoiceDescription]::new('Zoom &Basic')
+                            [System.Management.Automation.Host.ChoiceDescription]::new('Zoom &Licensed')
+                            [System.Management.Automation.Host.ChoiceDescription]::new('&None')
+                            )
+                        $ZoomChoiceDefault = 2
+                        $ZoomChoiceSelection = $host.ui.PromptForChoice($ZoomChoiceTitle, $ZoomChoiceMessage, $ZoomChoiceOptions, $ZoomChoiceDefault)
+                        $ZoomLicense = $ZoomChoiceOptions[$ZoomChoiceSelection].Label.Replace('&','')
+                        }
+                    if ( $ZoomLicense -match "Zoom" )
+                        {
+                        $ZoomGroup = Get-MgGroup -Filter "DisplayName eq `'$ZoomLicense`'"
+                        $EntraIdentity = Get-MgUser -UserId $Identity.userprincipalname
+                        New-MgGroupMember -GroupID $ZoomGroup.Id -DirectoryObjectID $EntraIdentity.Id -Confirm:$False
+                        }
+                    }
+                try
+                    {
+                    "Terminated Users", "FMLA Users" | Remove-ADGroupMember -Members $Identity -Confirm:$False -Server dom01
+                    }
+                catch
+                    {
+                    $Error
+                    }
+                Clear-ADAccountExpiration -Identity $Identity -Server dom01
                 }
-            $UserInfoList.Add($UserInfo)
+                if ( $PSCmdlet.ParameterSetName -ne "FMLA" )
+                    {
+                    try
+                        {
+                        Remove-ADGroupMember "FMLA Users" -Members $Identity -Confirm:$False -Server dom01
+                        }
+                    catch
+                        {
+                        Write-Warning "Couldn't remove $($Identity.Displayname) from "FMLA Users" group"
+                        }
+                    }
+                $UserInfoList.Add($UserInfo)
+            }
         }
         end
             {
